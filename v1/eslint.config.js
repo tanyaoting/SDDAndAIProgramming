@@ -18,6 +18,15 @@ export default tseslint.config(
   js.configs.recommended,
   ...tseslint.configs.recommended,
   {
+    rules: {
+      // 允许解构剔除场景：const { A, ...rest } = obj（A 并非未使用）
+      '@typescript-eslint/no-unused-vars': [
+        'error',
+        { ignoreRestSiblings: true, argsIgnorePattern: '^_', varsIgnorePattern: '^_' },
+      ],
+    },
+  },
+  {
     files: ['src/sdr/**/*.ts'],
     ignores: ['src/sdr/store/**'],
     rules: {
