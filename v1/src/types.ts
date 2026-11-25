@@ -39,6 +39,18 @@ export interface Event {
   readonly payload?: unknown;
 }
 
+export interface Report {
+  readonly id?: number;
+  readonly memberId: number;
+  /** 日期（YYYY-MM-DD，Asia/Shanghai）。 */
+  readonly reportDate: string;
+  readonly status: ReportStatus;
+  /** 渲染后的邮件正文快照；编辑以 entry 为准，推送前重渲染。 */
+  readonly body?: string;
+  readonly generatedAt: Date;
+  readonly pushedAt?: Date;
+}
+
 export interface Entry {
   readonly id?: number;
   readonly reportId: number;

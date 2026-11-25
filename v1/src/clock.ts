@@ -113,3 +113,25 @@ export function dayWindow(clock: Clock, date: string): { since: Date; until: Dat
     until: startOfDayUtc(year, month, day + 1, clock.timeZone),
   };
 }
+
+/**
+ * 把时刻格式化为带时区偏移的 ISO 8601（`occurred_at` 等文本列的存储格式）。
+ * 固定偏移下字典序即时间序，可直接用于 SQL 区间比较。
+ */
+export function toZonedIsoString(clock: Clock, at: Date): string {
+  const p = zonedParts(at, clock.timeZone);
+  const offsetMinutes = offsetMilliseconds(at, clock.timeZone) / 60000;
+  const sign = offsetMinutes < 0 ? '-' : '+';
+  const absolute = Math.abs(offsetMinutes);
+  const offset = `${sign}${pad2(Math.floor(absolute / 60))}:${pad2(absolute % 60)}`;
+  const millis = String(at.getUTCMilliseconds()).padStart(3, '0');
+  return (
+    `${String(p.year).padStart(4, '0')}-${pad2(p.month)}-${pad2(p.day)}` +
+    `T${pad2(p.hour)}:${pad2(p.minute)}:${pad2(p.second)}.${millis}${offset}`
+  );
+}
+
+/** 文本 → 时刻：`Date` 与文本的转换边界统一收敛在 clock.ts。 */
+export function parseInstant(iso: string): Date {
+  return new Date(iso);
+}
