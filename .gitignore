@@ -1,0 +1,25 @@
+# 环境与凭证（禁止入仓）
+.env
+.env.*
+!.env.example
+*.token
+
+# 运行产物
+*.db
+*.sqlite
+*.sqlite3
+reports/
+logs/
+
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+uv.lock.bak
+
+# 系统与编辑器
+.DS_Store
+.idea/
+.vscode/
+*.swp
