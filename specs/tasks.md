@@ -4,13 +4,15 @@
 >
 > | 项 | 内容 |
 > |---|---|
-> | 文档版本 | v0.1（初稿，待第 2 周阶段评审） |
-> | 上游规范 | `specs/proposal.md` v0.1、`specs/design.md` v0.1 |
+> | 文档版本 | v0.2（实现语言改为 TypeScript，待第 2 周阶段评审） |
+> | 上游规范 | `specs/proposal.md` v0.3、`specs/design.md` v0.3 |
 > | 覆盖范围 | 阶段一 v1（FR-01～FR-12） |
 > | 编写角色 | 架构师（〔待填〕）、开发工程师（〔待填〕） |
 > | 更新日期 | 〔待填〕 |
 
 **拆分原则**：一个任务 = 一个可验证的交付物；单任务预估 ≤ 8 人时；每个任务至少对应一条验收标准（CS 编号）。任务描述中不得出现"实现后台""完成采集模块"这类不可验证的表述。
+
+**v0.2 变更**：全部技术栈由 Python 生态改为 TypeScript 生态（Node 22 LTS + pnpm + vitest + tsc）。任务编排、依赖关系与验收标准不变，工时按新工具链重估（112 → 116 人时）。
 
 ---
 
@@ -18,11 +20,11 @@
 
 | 里程碑 | 包含任务 | 门禁条件（全部满足才可进入下一里程碑） |
 |---|---|---|
-| M0 工程基线 | T-001～T-002 | 空工程可在双环境运行，静态检查与测试命令可用 |
+| M0 工程基线 | T-001～T-002 | `pnpm typecheck`、`pnpm lint`、`pnpm test` 三条命令均可执行且零错误 |
 | M1 存储 | T-003～T-004 | 建表幂等、唯一约束生效、数据访问层无裸 SQL 外泄 |
 | M2 采集 | T-005～T-010 | 三源采集可独立运行，去重在数据库层生效 |
 | M3 生成 | T-011～T-016 | 固定输入可产出符合 CS-01～CS-06 的日报 |
-| M4 推送 | T-017～T-020 | dry-run 正文可核对，推送与补发留痕完整 |
+| M4 推送 | T-017～T-020 | `--dry-run` 正文可核对，推送与补发留痕完整 |
 | M5 验收 | T-021～T-024 | CS-01～CS-18 全覆盖，集成测试记录归档，可打 tag |
 
 ---
@@ -33,57 +35,66 @@
 
 | 编号 | 标题 | 交付物 | 验收标准 | 依赖 | 预估 |
 |---|---|---|---|---|---|
-| T-001 | 建立工程骨架与工具链 | `pyproject.toml`（uv 管理）、`src/sdr/` 目录树、`tests/`、lint/type/test 命令 | `uv run pytest` 与 `uv run mypy --strict src` 均可执行且通过（0 用例亦视为通过） | — | 3h |
-| T-002 | 配置加载与错误码体系 | `config.py`、`errors.py`、`.env.example`（仅键名） | 缺少必需环境变量时退出码 9 并给出变量名；`SDR-E1xx~E5xx` 均有单元测试；`.env.example` 不含任何真实值 | T-001 | 4h |
+| T-001 | 建立工程骨架与工具链 | `package.json`（pnpm）、`tsconfig.json`（`strict`）、`eslint.config.js`、`.prettierrc`、`vitest.config.ts`、`src/sdr/`、`tests/` | `pnpm typecheck` / `pnpm lint` / `pnpm test` 三条命令均可执行且零错误（0 用例视为通过）；`tsconfig` 开启 `strict`、`noUncheckedIndexedAccess`、`exactOptionalPropertyTypes` | — | 5h |
+| T-002 | 配置加载与错误码体系 | `src/sdr/config.ts`（zod schema）、`src/sdr/errors.ts`（`SdrError`）、`.env.example` | 缺少必需环境变量时退出码 9 并给出变量名；`SDR-E1xx~E5xx` 均有单元测试；`SdrError` 含 `code`/`source`/`cause` 三者；`.env.example` 不含任何真实值 | T-001 | 5h |
 
 ### M1 存储
 
 | 编号 | 标题 | 交付物 | 验收标准 | 依赖 | 预估 |
 |---|---|---|---|---|---|
-| T-003 | 建表脚本与约束校验 | `store/schema.py`、`tests/test_schema.py` | 对空库重复执行初始化幂等；插入重复 `dedupe_key` 抛唯一约束异常；`report.status` 非法值被拒 | T-002 | 4h |
-| T-004 | 数据访问层 | `store/repo.py`（Event/Report/Entry/SourceLink 的读写接口） | 各实体 CRUD 单测覆盖 ≥ 80%；`src/` 内除 `store/` 外无 `sqlite3` 或 SQL 字符串；事务回滚测试通过 | T-003 | 6h |
+| T-003 | 建表脚本与约束校验 | `store/schema.ts`、`tests/store/schema.test.ts` | 对空库重复执行初始化幂等；插入重复 `dedupeKey` 抛 `SQLITE_CONSTRAINT_UNIQUE`；`report.status` 非法值被 CHECK 拒绝；`PRAGMA foreign_keys` 生效（插入无效外键失败） | T-002 | 4h |
+| T-004 | 数据访问层与行映射 | `store/repo.ts`（`Event`/`Report`/`Entry`/`SourceLink` 读写 + `snake_case`→`camelCase` 映射） | 各实体 CRUD 单测覆盖 ≥ 80%；`src/` 内除 `store/` 外无 `better-sqlite3` 的 import（ESLint 规则验证）；事务回滚测试通过；重复 `dedupeKey` 被转换为幂等返回而非抛错 | T-003 | 7h |
 
 ### M2 采集
 
 | 编号 | 标题 | 交付物 | 验收标准 | 依赖 | 预估 |
 |---|---|---|---|---|---|
-| T-005 | HTTP 客户端封装 | `src/sdr/http.py`（超时、重试、日志掩码） | 以 `MockTransport` 模拟超时，重试恰好 3 次且退避为 1/2/4 秒；日志中令牌为掩码（>8 位全部替换） | T-002 | 3h |
-| T-006 | GitHub 提交采集器 | `collectors/github.py`、`tests/fixtures/github_commits.json` | 固定 fixture 输入产出预期条数的 `Event`；令牌失效映射 `SDR-E101`、限流映射 `SDR-E102`；不返回部分结果 | T-004、T-005 | 6h |
-| T-007 | 飞书任务采集器 | `collectors/feishu.py`、状态映射表 | 任务状态映射逐条断言（完成→done，未知→doing）；授权失败映射 `SDR-E201`；字段缺失映射 `SDR-E202` | T-004、T-005 | 6h |
-| T-008 | 本地文件扫描器 | `collectors/local.py` | 仅返回统计窗口内变更的文件；跳过 `.git`、`node_modules`、`.venv`；路径为绝对路径 | T-004 | 3h |
-| T-009 | 手工补充入口 | `collectors/manual.py` + `sdr collect --manual` 子参数 | 录入生成 `source=manual` 的 `Event`；空字符串与纯空白被拒绝并提示；单次可录入多条 | T-004 | 3h |
-| T-010 | 事件归一与去重 | `collectors/normalize.py` | 同一 commit 采集两次入库仅 1 条（CS-01）；多源同一事件保留主源 `is_primary=1`；去重后顺序按 `occurred_at` 升序 | T-006、T-007、T-008 | 5h |
+| T-005 | HTTP 客户端封装 | `src/sdr/http.ts`（`fetch` + `AbortSignal.timeout` + 指数退避 + 日志掩码） | 用 `undici` `MockAgent` 模拟超时，重试恰好 3 次且退避为 1/2/4 秒；日志中令牌为掩码（>8 位全部替换）；`http.ts` 不 import 任何业务模块（ESLint 验证） | T-002 | 4h |
+| T-006 | GitHub 提交采集器 | `collectors/github.ts`、`tests/fixtures/github_commits.json` | 固定 fixture 输入产出预期条数 `Event`；401 映射 `SDR-E101`、403+限流头映射 `SDR-E102`、超时映射 `SDR-E103`；分页逻辑对 250 条 fixture 返回全部（3 页）；不返回部分结果 | T-004、T-005 | 6h |
+| T-007 | 飞书任务采集器 | `collectors/feishu.ts`、状态映射表 | 任务状态映射逐条断言（完成→done，未知→doing）；授权失败映射 `SDR-E201`；字段缺失映射 `SDR-E202` | T-004、T-005 | 6h |
+| T-008 | 本地文件扫描器 | `collectors/local.ts` | 仅返回统计窗口内 `mtime` 变更的文件；跳过 `.git`、`node_modules`、`.venv`、`dist`；路径为绝对路径；符号链接不追踪 | T-004 | 3h |
+| T-009 | 手工补充入口 | `collectors/manual.ts` + `sdr collect --manual` | 录入生成 `source='manual'` 的 `Event`；空字符串与纯空白被拒绝并提示；单次可录入多条 | T-004 | 3h |
+| T-010 | 事件归一与去重 | `collectors/normalize.ts` | 同一 commit 采集两次入库仅 1 条（CS-01）；多源同一事件保留主源 `isPrimary=true`；结果按 `occurredAt` 升序；`dedupeKey` 生成函数有独立单测（同输入同输出） | T-006、T-007、T-008 | 5h |
 
 ### M3 生成
 
 | 编号 | 标题 | 交付物 | 验收标准 | 依赖 | 预估 |
 |---|---|---|---|---|---|
-| T-011 | 关键词规则库与提取器 | `generator/extract.py`、`config/keywords.toml` | 人工标注 ≥ 20 条样本，阶段判定准确率 ≥ 90%；无命中返回 `DOING` 且置信度 0.0（不猜测） | T-004 | 5h |
-| T-012 | 时段划分 | `generator/timeline.py`、`config/work_hours.toml` | 落在休息区间的事件归入前一工作时段（IR-05）；时段配置重叠抛 `SDR-E301`；跨时段事件只按开始时间归位一次 | T-002、T-004 | 4h |
-| T-013 | 协作归属三级策略 | `generator/attribution.py` | 含 `Co-authored-by` 的多作者提交归属全部标记作者，命中率 100%（CS-03）；无标记时按任务时间窗兜底并加"（协作）"标注；仍无法判定时加 `[待确认]` 前缀 | T-010 | 6h |
-| T-014 | 去人称渲染 | `generator/render.py`、`src/sdr/templates/entry.txt` | 输出不含"我/我们/咱"等第一人称，命中数 0（CS-05）；单句 ≤ 60 字；每条附来源链接（CS-04 缺失率 0） | T-011、T-012 | 5h |
-| T-015 | 日报装配与状态机 | `generator/report.py` | 请假生成占位条目而非空文件；无事件生成可编辑空白模板（CS-06、CS-14）；`confirmed` 日报不被覆盖，除非 `--force`；一人一日仅一份 | T-013、T-014 | 5h |
-| T-016 | 团队汇总 | `generator/summary.py` | 汇总含出勤矩阵、条目计数与状态分布、阻塞项摘要；不含他人明细正文（CS-09）；≥ 2 人固定数据快照测试通过 | T-015 | 5h |
+| T-011 | 关键词规则库与提取器 | `generator/extract.ts`、`config/keywords.yaml` | 人工标注 ≥ 20 条样本，阶段判定准确率 ≥ 90%；无命中返回 `{ phase: 'doing', confidence: 0 }`；规则非法正则在校验阶段被拒 | T-004 | 5h |
+| T-012 | 时段划分 | `generator/timeline.ts`、`config/work-hours.yaml` | 落在休息区间的事件归入前一工作时段（IR-05）；时段重叠或乱序抛 `SDR-E301`；跨时段事件只按开始时间归位一次；zod 校验失败信息含具体字段名 | T-002、T-004 | 4h |
+| T-013 | 协作归属三级策略 | `generator/attribution.ts` | 含 `Co-authored-by` 的多作者提交归属全部标记作者，命中率 100%（CS-03）；无标记时按任务时间窗兜底并加"（协作）"；仍无法判定时返回 `pending=true` 并加 `[待确认]` 前缀 | T-010 | 6h |
+| T-014 | 去人称渲染 | `generator/render.ts`、`generator/phrases.ts` | 输出不含"我/我们/咱"等第一人称，命中数 0（CS-05）；单句 ≤ 60 字；`links` 为空抛 `SDR-E302`（CS-04 缺失率 0）；快照测试覆盖 5 类事件 × 4 种状态 | T-011、T-012 | 5h |
+| T-015 | 日报装配与状态机 | `generator/report.ts` | 请假生成占位条目而非空文件；无事件生成可编辑空白模板（CS-06、CS-14）；`confirmed` 日报不被覆盖，除非 `--force`；一人一日仅一份（唯一约束验证） | T-013、T-014 | 5h |
+| T-016 | 团队汇总 | `generator/summary.ts` | 汇总含出勤矩阵、条目计数与状态分布、阻塞项摘要；**数据访问层仅查询 `state='blocked'` 的 content**，不读取他人其他状态正文（CS-09 的白盒断言）；≥ 2 人固定数据快照测试通过 | T-015 | 5h |
 
 ### M4 推送
 
 | 编号 | 标题 | 交付物 | 验收标准 | 依赖 | 预估 |
 |---|---|---|---|---|---|
-| T-017 | 邮件渲染 | `publisher/mail.py`（渲染部分） | `sdr push --dry-run` 输出正文与 golden 文件逐字一致；纯文本与 HTML 双版本均可生成；主题含日期与成员名 | T-015 | 4h |
-| T-018 | SMTP 发送与失败告警 | `publisher/mail.py`（发送部分）、`publisher/alert.py` | 认证失败写 `push_log` 并触发一封告警邮件，标注错误类型（CS-07）；采集失败同样告警且不影响其他源 | T-017 | 4h |
-| T-019 | 调度与补发 | `publisher/scheduler.py` | 修改推送时间后下次推送按新时间执行；模拟错过时点，补发在 5 分钟内完成（CS-08）；补发不产生重复邮件 | T-018 | 6h |
-| T-020 | 历史查询与权限校验 | `cli history` 实现 | 越权查询返回退出码 8（CS-09）；1000 条数据下查询 ≤ 2 秒（CS-10）；支持 `--from/--to` 区间 | T-004 | 4h |
+| T-017 | 邮件渲染 | `publisher/mail.ts`（渲染部分） | `sdr push --dry-run` 输出正文与 golden 文件逐字一致；纯文本与 HTML 双版本均可生成；主题含日期与成员名 | T-015 | 4h |
+| T-018 | SMTP 发送与失败告警 | `publisher/mail.ts`（发送部分，`nodemailer`）、`publisher/alert.ts` | 认证失败写 `push_log` 并触发一封告警邮件，标注错误类型（CS-07）；采集失败同样告警且不影响其他源；`nodemailer` 以 `streamTransport` 在测试中替代真实 SMTP | T-017 | 4h |
+| T-019 | 调度与补发 | `publisher/scheduler.ts` | 修改推送时间后下次推送按新时间执行；模拟错过时点，补发在 5 分钟内完成（CS-08）；补发不产生重复邮件（以 `push_log` 去重）；时钟以注入的 `now()` 函数获取，测试不依赖真实时间 | T-018 | 6h |
+| T-020 | 历史查询与权限校验 | `sdr history` 实现 | 越权查询返回退出码 8（CS-09）；1000 条数据下查询 ≤ 2 秒（CS-10）；支持 `--from/--to` 区间 | T-004 | 4h |
 
 ### M5 验收
 
 | 编号 | 标题 | 交付物 | 验收标准 | 依赖 | 预估 |
 |---|---|---|---|---|---|
-| T-021 | 端到端集成测试 | `tests/integration/`（固定数据 → 采集 → 生成 → dry-run 推送） | CS-01～CS-18 每条至少一个对应用例，用例与标准编号一一标注；整体覆盖率 ≥ 70%；无网络依赖 | T-006～T-020 | 8h |
-| T-022 | 性能实测与指标回填 | `docs/测试记录.md` 中的实测章节 | CS-11（≤ 30 秒）、CS-12（≤ 60 秒）有实测数据与采集环境说明；超限时记录原因与改进项（触发 ADR-001-S） | T-021 | 3h |
-| T-023 | UML 正式图与附件 | 用例图、类图、ER 图、泳道图（绘图工具产物）+ `design.md` 附件索引 | 四类图齐全；类图与 `src/` 实际模块一致；泳道图与 ADR 中的时段/归属流程一致 | T-016 | 6h |
-| T-024 | v1 交付核对与打 tag | 集成测试记录、规范一致性自查表、tag `v1-sdd` | 全量测试通过；`docs/` 已归档测试记录；`specs/` 与实际实现无偏离（偏离须修订规范而非改实现） | T-021～T-023 | 3h |
+| T-021 | 端到端集成测试 | `tests/integration/`（固定数据 → 采集 → 生成 → `--dry-run` 推送） | CS-01～CS-18 每条至少一个对应用例，用例与标准编号一一标注；覆盖率 ≥ 70%；全程无真实网络（`MockAgent` 全局拦截，未拦截请求即失败） | T-006～T-020 | 8h |
+| T-022 | 性能实测与指标回填 | `docs/测试记录.md` 实测章节 | CS-11（≤ 30 秒）、CS-12（≤ 60 秒）有实测数据与运行环境说明；超限时记录原因与改进项（触发 ADR-001 的分页/并发改进） | T-021 | 3h |
+| T-023 | UML 正式图与附件 | 用例图、类图、ER 图、泳道图（绘图工具产物）+ `design.md` 附件索引 | 四类图齐全；类图与 `src/sdr/` 实际模块一致；泳道图与 ADR-004/005 的时段与归属流程一致 | T-016 | 6h |
+| T-024 | v1 交付核对与打 tag | 集成测试记录、规范一致性自查表、tag `v1-sdd` | 全量测试通过；`docs/` 已归档测试记录；`specs/` 与实际实现无偏离（偏离须修订规范而非改实现）；`pnpm build` 产物可执行 | T-021～T-023 | 3h |
 
-**合计预估**：112 人时。按 3 人组第 2 周可用工时（约 3 人 × 5 天 × 6 小时 = 90 人时）计算，总量超出约 24%。削减策略：T-022 与 T-023 可并行压缩至 4h；若仍超限，按 M0→M1→M2→M3→M4 顺序保证主链路完整，T-016（汇总）降级为"仅计数矩阵"。
+**合计预估**：116 人时（v0.1 的 Python 方案为 112 人时，差额来自 TS 工具链搭建 +3h、zod 校验 +1h）。按 3 人组第 2 周可用工时（约 3 人 × 5 天 × 6 小时 = 90 人时）计算，超出约 29%。
+
+**削减策略（按顺序执行，不得跳序）**：
+
+1. T-022 与 T-023 并行压缩（8h → 5h），省 3h
+2. T-016 降级为"仅出勤矩阵 + 计数"，阻塞项摘要移至 v1.1，省 2h
+3. T-006 的分页逻辑先用单页实现（≤ 100 条提交足够覆盖单日），省 2h
+4. 仍超限时，将 T-020（历史查询）降级为"仅按日期范围导出文本"，省 2h
+
+> 削减后的功能缺项必须在 proposal 的"不做什么"中补记，不得静默降级——这是"规格先行"的核心要求。
 
 ---
 
@@ -91,7 +102,7 @@
 
 ```mermaid
 flowchart LR
-    T001[T-001 骨架] --> T002[T-002 配置/错误码]
+    T001[T-001 工程骨架] --> T002[T-002 配置/错误码]
     T002 --> T003[T-003 建表]
     T003 --> T004[T-004 数据访问]
     T002 --> T005[T-005 HTTP 封装]
@@ -129,7 +140,7 @@ flowchart LR
     T023 --> T024
 ```
 
-**关键路径**：T-001 → T-002 → T-003 → T-004 → T-006 → T-010 → T-013 → T-015 → T-017 → T-018 → T-019 → T-021 → T-024（共 62 人时，为第 2 周排期主线）。
+**关键路径**：T-001 → T-002 → T-003 → T-004 → T-006 → T-010 → T-013 → T-015 → T-017 → T-018 → T-019 → T-021 → T-024（**68 人时**，为第 2 周排期主线）。
 
 **可并行作业**（多人协作依据）：
 
@@ -170,4 +181,5 @@ v2（Superpowers 工作流）的任务清单**不在本文件规划**。理由�
 
 | 版本 | 日期 | 变更内容 | 变更人 |
 |---|---|---|---|
-| v0.1 | 〔待填〕 | 初稿：24 个任务覆盖 FR-01～FR-12，含里程碑门禁与依赖图 | 〔待填〕 |
+| v0.1 | 〔待填〕 | 初稿：24 个任务覆盖 FR-01～FR-12，含里程碑门禁与依赖图（Python 方案） | 〔待填〕 |
+| v0.2 | 〔待填〕 | 技术栈改为 TypeScript：工具链任务重写（pnpm/vitest/tsc），打桩方式改为 `undici` `MockAgent`，工时 112→116，补充削减策略与"削减须回写 proposal"的约束 | 〔待填〕 |
