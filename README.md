@@ -21,7 +21,7 @@
 │   ├── 业务调研报告-框架稿.docx
 │   └── 业务调研纪要.docx
 ├── v1/                             # 阶段一工程根（SDD 实现，Node 工程）
-│   ├── src/sdr/                    # 源码（规范中的 src/ 路径均相对本目录）
+│   ├── src/                        # 源码（sdr 为包名，见 package.json）
 │   ├── tests/                      # 测试（vitest）
 │   └── .env.example                # 环境变量键名样例（禁止填真实值）
 └── README.md

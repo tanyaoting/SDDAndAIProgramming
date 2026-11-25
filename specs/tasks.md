@@ -35,8 +35,8 @@
 
 | 编号 | 标题 | 交付物 | 验收标准 | 依赖 | 预估 |
 |---|---|---|---|---|---|
-| T-001 | 建立工程骨架与工具链 | `package.json`（pnpm）、`tsconfig.json`（`strict`）、`eslint.config.js`、`.prettierrc`、`vitest.config.ts`、`src/sdr/`、`tests/` | `pnpm typecheck` / `pnpm lint` / `pnpm test` 三条命令均可执行且零错误（0 用例视为通过）；`tsconfig` 开启 `strict`、`noUncheckedIndexedAccess`、`exactOptionalPropertyTypes` | — | 5h |
-| T-002 | 配置加载与错误码体系 | `src/sdr/config.ts`（zod schema）、`src/sdr/errors.ts`（`SdrError`）、`.env.example` | 缺少必需环境变量时退出码 9 并给出变量名；`SDR-E1xx~E5xx` 均有单元测试；`SdrError` 含 `code`/`source`/`cause` 三者；`.env.example` 不含任何真实值 | T-001 | 5h |
+| T-001 | 建立工程骨架与工具链 | `package.json`（pnpm）、`tsconfig.json`（`strict`）、`eslint.config.js`、`.prettierrc`、`vitest.config.ts`、`src/`、`tests/` | `pnpm typecheck` / `pnpm lint` / `pnpm test` 三条命令均可执行且零错误（0 用例视为通过）；`tsconfig` 开启 `strict`、`noUncheckedIndexedAccess`、`exactOptionalPropertyTypes` | — | 5h |
+| T-002 | 配置加载与错误码体系 | `src/config.ts`（zod schema）、`src/errors.ts`（`SdrError`）、`.env.example` | 缺少必需环境变量时退出码 9 并给出变量名；`SDR-E1xx~E5xx` 均有单元测试；`SdrError` 含 `code`/`source`/`cause` 三者；`.env.example` 不含任何真实值 | T-001 | 5h |
 
 ### M1 存储
 
@@ -49,7 +49,7 @@
 
 | 编号 | 标题 | 交付物 | 验收标准 | 依赖 | 预估 |
 |---|---|---|---|---|---|
-| T-005 | HTTP 客户端封装 | `src/sdr/http.ts`（`fetch` + `AbortSignal.timeout` + 指数退避 + 日志掩码） | 用 `undici` `MockAgent` 模拟超时，重试恰好 3 次且退避为 1/2/4 秒；日志中令牌为掩码（>8 位全部替换）；`http.ts` 不 import 任何业务模块（ESLint 验证） | T-002 | 4h |
+| T-005 | HTTP 客户端封装 | `src/http.ts`（`fetch` + `AbortSignal.timeout` + 指数退避 + 日志掩码） | 用 `undici` `MockAgent` 模拟超时，重试恰好 3 次且退避为 1/2/4 秒；日志中令牌为掩码（>8 位全部替换）；`http.ts` 不 import 任何业务模块（ESLint 验证） | T-002 | 4h |
 | T-006 | GitHub 提交采集器 | `collectors/github.ts`、`tests/fixtures/github_commits.json` | 固定 fixture 输入产出预期条数 `Event`；401 映射 `SDR-E101`、403+限流头映射 `SDR-E102`、超时映射 `SDR-E103`；分页逻辑对 250 条 fixture 返回全部（3 页）；不返回部分结果 | T-004、T-005 | 6h |
 | T-007 | 飞书任务采集器 | `collectors/feishu.ts`、状态映射表 | 任务状态映射逐条断言（完成→done，未知→doing）；授权失败映射 `SDR-E201`；字段缺失映射 `SDR-E202` | T-004、T-005 | 6h |
 | T-008 | 本地文件扫描器 | `collectors/local.ts` | 仅返回统计窗口内 `mtime` 变更的文件；跳过 `.git`、`node_modules`、`.venv`、`dist`；路径为绝对路径；符号链接不追踪 | T-004 | 3h |
@@ -82,7 +82,7 @@
 |---|---|---|---|---|---|
 | T-021 | 端到端集成测试 | `tests/integration/`（固定数据 → 采集 → 生成 → `--dry-run` 推送） | CS-01～CS-18 每条至少一个对应用例，用例与标准编号一一标注；覆盖率 ≥ 70%；全程无真实网络（`MockAgent` 全局拦截，未拦截请求即失败） | T-006～T-020 | 8h |
 | T-022 | 性能实测与指标回填 | `docs/测试记录.md` 实测章节 | CS-11（≤ 30 秒）、CS-12（≤ 60 秒）有实测数据与运行环境说明；超限时记录原因与改进项（触发 ADR-001 的分页/并发改进） | T-021 | 3h |
-| T-023 | UML 正式图与附件 | 用例图、类图、ER 图、泳道图（绘图工具产物）+ `design.md` 附件索引 | 四类图齐全；类图与 `src/sdr/` 实际模块一致；泳道图与 ADR-004/005 的时段与归属流程一致 | T-016 | 6h |
+| T-023 | UML 正式图与附件 | 用例图、类图、ER 图、泳道图（绘图工具产物）+ `design.md` 附件索引 | 四类图齐全；类图与 `src/` 实际模块一致；泳道图与 ADR-004/005 的时段与归属流程一致 | T-016 | 6h |
 | T-024 | v1 交付核对与打 tag | 集成测试记录、规范一致性自查表、tag `v1-sdd` | 全量测试通过；`docs/` 已归档测试记录；`specs/` 与实际实现无偏离（偏离须修订规范而非改实现）；`pnpm build` 产物可执行 | T-021～T-023 | 3h |
 
 **合计预估**：116 人时（v0.1 的 Python 方案为 112 人时，差额来自 TS 工具链搭建 +3h、zod 校验 +1h）。按 3 人组第 2 周可用工时（约 3 人 × 5 天 × 6 小时 = 90 人时）计算，超出约 29%。
