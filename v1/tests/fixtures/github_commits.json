@@ -1,0 +1,41 @@
+[
+  {
+    "sha": "a1b2c3d4e5f6",
+    "html_url": "https://github.com/acme/app/commit/a1b2c3d4e5f6",
+    "author": { "login": "alice" },
+    "commit": {
+      "message": "feat: 实现登录接口\n\n补充鉴权单元测试",
+      "author": {
+        "name": "Alice",
+        "email": "alice@example.com",
+        "date": "2026-11-25T09:30:00Z"
+      }
+    }
+  },
+  {
+    "sha": "b2c3d4e5f6a1",
+    "html_url": "https://github.com/acme/app/commit/b2c3d4e5f6a1",
+    "author": { "login": "bob" },
+    "commit": {
+      "message": "fix: 修复分页越界",
+      "author": {
+        "name": "Bob",
+        "email": "bob@example.com",
+        "date": "2026-11-25T07:10:00Z"
+      }
+    }
+  },
+  {
+    "sha": "c3d4e5f6a1b2",
+    "html_url": "https://github.com/acme/app/commit/c3d4e5f6a1b2",
+    "author": { "login": "carol" },
+    "commit": {
+      "message": "docs: 外部贡献者提交",
+      "author": {
+        "name": "Carol",
+        "email": "carol@example.com",
+        "date": "2026-11-25T08:00:00Z"
+      }
+    }
+  }
+]
