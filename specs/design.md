@@ -4,7 +4,7 @@
 >
 > | 项 | 内容 |
 > |---|---|
-> | 文档版本 | v0.4（按 `specs/design-review.md` 16 条缺陷修订，待复核） |
+> | 文档版本 | v0.4（按 `specs/design-review.md` 16 条缺陷修订，已全部关闭） |
 > | 上游规范 | `specs/proposal.md` v0.4（§3.2 访谈结论、§5 技术约束、§8 风险 R1～R6） |
 > | 下游规范 | `specs/tasks.md` v0.3 |
 > | 评审记录 | `specs/design-review.md`（R-01～R-16，本版逐条回应） |
@@ -468,7 +468,7 @@ export function sendMail(payload: MailPayload): Promise<{ ok: true; messageId: s
 
 **理由**：同步 API 使事务边界清晰（`db.transaction(fn)` 一次调用完成"日报 + 条目 + 归属 + 来源链接"原子写入），比异步驱动的 `await` 链更不易出现部分提交；配合自写 repository 类型，可将行记录映射为 §4.1 的领域类型。
 
-**后果**：行记录与领域对象的映射代码需手写（约 100 行），换来零 ORM 依赖。**安装前置条件**：`better-sqlite3` 为原生模块，主流组合（macOS x64/arm64、Linux glibc x64/arm64、Windows x64 且 Node 版本有预编译产物）由预编译二进制直接安装，无需本地编译；其余组合（如 Alpine/musl、Node 新大版本首次发布后的窗口期）需回退到源码编译，要求 `python3` + `make` + C++ 工具链。README 须按此二分法写明，不得笼统写成"安装顺畅"（R-16）。三人组须在 T-001 阶段各执行一次 `pnpm install` 验证。
+**后果**：行记录与领域对象的映射代码需手写（约 100 行），换来零 ORM 依赖。**安装前置条件（v0.4 已实测）**：`better-sqlite3` 13.x 的包内自带 8 个预编译二进制（`darwin`/`linux`/`linuxmusl`/`win32` × `x64`/`arm64`），**安装时无需本地编译**，也不需要 `node-gyp` 与 C++ 工具链。因此工程侧须在 pnpm 配置中显式声明 `allowBuilds: { better-sqlite3: false }`：跳过其 `install` 脚本（该脚本在无工具链环境下会失败），直接使用包内预编译产物。验证方式：`node -e "new (require('better-sqlite3'))(':memory:')"` 在 macOS arm64 上通过，`pnpm install` 无 ERR_PNPM_IGNORED_BUILDS 告警。若未来升级到不提供预编译产物的版本，须同时移除该声明并补齐构建工具链，README 需记录此约束（R-16）。
 
 ---
 
