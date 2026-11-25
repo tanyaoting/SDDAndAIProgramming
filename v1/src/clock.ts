@@ -131,7 +131,7 @@ export function toZonedIsoString(clock: Clock, at: Date): string {
   );
 }
 
-/** 文本 → 时刻：`Date` 与文本的转换边界统一收敛在 clock.ts。 */
-export function parseInstant(iso: string): Date {
-  return new Date(iso);
+/** 文本 / 毫秒时间戳 → 时刻：`Date` 与外部时间表示的转换边界统一收敛在 clock.ts。 */
+export function parseInstant(value: string | number): Date {
+  return new Date(value);
 }
