@@ -19,6 +19,11 @@ const envSchema = z.object({
   SMTP_PASS: z.string().min(1),
   SMTP_FROM: z.string().min(1),
   SDR_DB_PATH: z.string().min(1).default('data/sdr.db'),
+  /** 每日推送时间（HH:mm，Asia/Shanghai），可运行时修改，默认 18:00（CS-08）。 */
+  SDR_PUSH_TIME: z
+    .string()
+    .regex(/^([01]\d|2[0-3]):[0-5]\d$/, '格式应为 HH:mm')
+    .default('18:00'),
 });
 
 const REQUIRED_KEYS = [
@@ -43,6 +48,7 @@ export interface SdrConfig {
     readonly from: string;
   };
   readonly dbPath: string;
+  readonly pushTime: string;
 }
 
 /**
@@ -82,6 +88,7 @@ export function loadConfig(env: Record<string, string | undefined>): SdrConfig {
       from: e.SMTP_FROM,
     },
     dbPath: e.SDR_DB_PATH,
+    pushTime: e.SDR_PUSH_TIME,
   };
 }
 

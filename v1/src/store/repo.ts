@@ -5,6 +5,10 @@ import type { Clock, Entry, EntryMember, Event, Report, ReportStatus, SourceLink
 import { errorMessage, isUniqueViolation, toEntry, toEvent, toReport, toSourceLink } from './model.js';
 import type { EntryMemberRow, EntryRow, EventRow, ReportRow, SourceLinkRow } from './model.js';
 import { initSchema } from './schema.js';
+import { AuditRepo } from './audit-repo.js';
+import { EntryRepo } from './entry-repo.js';
+import { HistoryRepo } from './history-repo.js';
+import { MemberRepo } from './member-repo.js';
 
 import type {
   ReportBundle,
@@ -27,10 +31,21 @@ export type {
 /* 数据访问层 */
 
 export class Repo {
+  /** 成员、审计与历史查询作为同库子仓储暴露，调用方仍只依赖 Repo 一个入口。 */
+  readonly members: MemberRepo;
+  readonly audit: AuditRepo;
+  readonly history: HistoryRepo;
+  readonly entries: EntryRepo;
+
   constructor(
     private readonly db: Database.Database,
     private readonly clock: Clock,
-  ) {}
+  ) {
+    this.members = new MemberRepo(db);
+    this.audit = new AuditRepo(db, clock);
+    this.history = new HistoryRepo(db);
+    this.entries = new EntryRepo(db);
+  }
 
   close(): void {
     this.db.close();
@@ -123,6 +138,13 @@ export class Repo {
 
   updateReportBody(id: number, body: string): void {
     this.db.prepare('UPDATE report SET body = ? WHERE id = ?').run(body, id);
+  }
+
+  /** 推送成功后回写 `pushed_at`（design.md §3.2 report）。 */
+  updateReportPushedAt(id: number, at: Date): void {
+    this.db
+      .prepare('UPDATE report SET pushed_at = ? WHERE id = ?')
+      .run(toZonedIsoString(this.clock, at), id);
   }
 
   /** 单事务写入 report + entry + entry_member + source_link，任一失败整体回滚（E501）。 */

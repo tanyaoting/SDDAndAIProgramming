@@ -16,6 +16,16 @@ export type LinkType = 'url' | 'path' | 'note';
 
 export type EventKind = 'commit' | 'task_done' | 'file_change' | 'note';
 
+/** 成员（design.md §3.2 member）。可见性由 `managerId`（直属上级）决定。 */
+export interface Member {
+  readonly id: number;
+  readonly githubLogin: string;
+  readonly feishuOpenId?: string;
+  readonly displayName: string;
+  readonly managerId?: number;
+  readonly active: boolean;
+}
+
 /** 时钟端口：业务代码不得直接调用 new Date()（design.md ADR-007 / R-10）。 */
 export interface Clock {
   now(): Date;
