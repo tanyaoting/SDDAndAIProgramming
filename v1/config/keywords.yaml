@@ -1,0 +1,14 @@
+# 关键词规则库（FR-06）。同一文本命中多条时按状态累计权重，取最高分状态。
+rules:
+  - pattern: "完成|实现|修复|上线|发布|合入|交付|通过"
+    state: done
+    weight: 2
+  - pattern: "进行中|联调|开发中|排查|调试|推进|接入"
+    state: doing
+    weight: 1
+  - pattern: "计划|待办|下一步|准备|明天|后续"
+    state: plan
+    weight: 1
+  - pattern: "阻塞|卡住|受阻|等待中|无法"
+    state: blocked
+    weight: 2
