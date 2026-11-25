@@ -12,6 +12,11 @@ const noCollectorsPattern = {
   group: ['**/collectors', '**/collectors/**'],
   message: '生成层不得 import 采集层（design.md §1.2）',
 };
+// 时钟统一注入（design.md ADR-007 / R-10）：业务代码不得直接 new Date()。
+const noNewDateRule = {
+  selector: "NewExpression[callee.name='Date']",
+  message: '业务代码不得直接 new Date()，请注入 Clock（design.md ADR-007）',
+};
 
 export default tseslint.config(
   { ignores: ['dist/', 'coverage/', 'node_modules/'] },
@@ -31,6 +36,14 @@ export default tseslint.config(
     ignores: ['src/store/**'],
     rules: {
       'no-restricted-imports': ['error', { patterns: [noSqlitePattern] }],
+    },
+  },
+  {
+    // clock.ts 是唯一允许构造 Date 的业务模块；测试不在此 files 范围内。
+    files: ['src/**/*.ts'],
+    ignores: ['src/clock.ts'],
+    rules: {
+      'no-restricted-syntax': ['error', noNewDateRule],
     },
   },
   {
