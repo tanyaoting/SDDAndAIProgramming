@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import { loadConfig } from '../src/sdr/config.js';
-import { ERROR_CODES, SdrError } from '../src/sdr/errors.js';
+import { loadConfig } from '../src/config.js';
+import { ERROR_CODES, SdrError } from '../src/errors.js';
 
 const validEnv = {
   GITHUB_TOKEN: 'gh_test_token',

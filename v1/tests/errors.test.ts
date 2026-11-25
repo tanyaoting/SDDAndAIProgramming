@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { ERROR_CODES, SdrError, exitCode } from '../src/sdr/errors.js';
+import { ERROR_CODES, SdrError, exitCode } from '../src/errors.js';
 
 describe('T-002 错误码体系', () => {
   it('SdrError 含 code/source/cause 三者，且是 Error 实例', () => {

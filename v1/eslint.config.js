@@ -27,14 +27,14 @@ export default tseslint.config(
     },
   },
   {
-    files: ['src/sdr/**/*.ts'],
-    ignores: ['src/sdr/store/**'],
+    files: ['src/**/*.ts'],
+    ignores: ['src/store/**'],
     rules: {
       'no-restricted-imports': ['error', { patterns: [noSqlitePattern] }],
     },
   },
   {
-    files: ['src/sdr/generator/**/*.ts'],
+    files: ['src/generator/**/*.ts'],
     rules: {
       'no-restricted-imports': ['error', { patterns: [noSqlitePattern, noCollectorsPattern] }],
     },
