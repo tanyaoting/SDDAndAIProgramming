@@ -167,12 +167,16 @@ export function generateReport(options: GenerateReportOptions): GenerateReportRe
   const status: ReportStatus =
     options.leave === true ? 'leave' : options.events.length === 0 ? 'blank' : 'draft';
   const firstBlock = options.blocks[0]?.name ?? 'morning';
+  // CS-18：请假当日仍有提交时，保留提交条目并在占位条目上提示冲突，交由成员确认。
+  const assembled = assembleEntries(options);
+  const leaveText =
+    assembled.length > 0 ? '请假（未出勤，存在当日记录待确认）' : '请假（未出勤）';
   const entries =
     status === 'leave'
-      ? [placeholderEntry(options.memberId, firstBlock, '请假（未出勤）', '请假', 'plan')]
+      ? [placeholderEntry(options.memberId, firstBlock, leaveText, '请假', 'plan'), ...assembled]
       : status === 'blank'
         ? [placeholderEntry(options.memberId, firstBlock, '今日无进展记录', '空白模板', 'doing')]
-        : assembleEntries(options);
+        : assembled;
 
   const reportId = options.repo.saveReportBundle({
     memberId: options.memberId,
