@@ -33,6 +33,7 @@ interface FeishuTask {
   readonly status?: string;
   readonly completed_at?: string;
   readonly updated_at?: string;
+  readonly created_at?: string;
   readonly assignee?: { readonly open_id?: string } | null;
 }
 
@@ -188,7 +189,7 @@ export async function collectFeishu(options: FeishuCollectOptions): Promise<Even
         dedupeKey: makeDedupeKey({ sourceId: guid, memberId, occurredAt, clock: options.clock }),
         isPrimary: false,
         runId: options.runId,
-        payload: { status: task.status ?? null, state },
+        payload: { status: task.status ?? null, state, created_at: task.created_at ?? null },
       });
     }
 

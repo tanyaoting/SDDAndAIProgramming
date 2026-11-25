@@ -13,6 +13,78 @@ import type {
   SourceLink,
 } from '../types.js';
 
+/* 读写契约 */
+
+export interface EntryMemberInput {
+  readonly memberId: number;
+  readonly role: 'primary' | 'co';
+}
+
+export interface SourceLinkInput {
+  readonly linkType: LinkType;
+  readonly target: string;
+}
+
+export interface EntryInput {
+  readonly timeBlock: string;
+  readonly state: EntryState;
+  readonly content: string;
+  readonly orderIndex: number;
+  readonly originalDate?: string;
+  readonly sourceEventId?: number;
+  readonly isManual: boolean;
+  readonly attributionKind: AttributionKind;
+  readonly attributionConfirmed: boolean;
+  readonly members: readonly EntryMemberInput[];
+  readonly links: readonly SourceLinkInput[];
+}
+
+export interface ReportInput {
+  readonly memberId: number;
+  readonly reportDate: string;
+  readonly status: ReportStatus;
+  readonly body?: string;
+}
+
+export interface ReportBundleInput extends ReportInput {
+  readonly entries: readonly EntryInput[];
+}
+
+export interface ReportBundle {
+  readonly report: Report;
+  readonly entries: readonly Entry[];
+  readonly links: readonly SourceLink[];
+}
+
+export interface InsertEventResult {
+  readonly id: number;
+  readonly inserted: boolean;
+}
+
+/** 团队汇总的查询行（仅计数与状态，不含正文）。 */
+export interface SummaryQueryRow {
+  readonly memberId: number;
+  readonly displayName: string;
+  readonly status: ReportStatus | null;
+  readonly state: EntryState | null;
+  readonly entryCount: number;
+}
+
+/** 投影白名单（ADR-006 / CS-09）：不得出现 entry.content。 */
+export const SUMMARY_SQL = `
+  SELECT m.id           AS memberId,
+         m.display_name AS displayName,
+         r.status       AS status,
+         e.state        AS state,
+         COUNT(e.id)    AS entryCount
+    FROM member m
+    LEFT JOIN report r ON r.member_id = m.id AND r.report_date = ?
+    LEFT JOIN entry e ON e.report_id = r.id
+   WHERE m.active = 1
+   GROUP BY m.id, m.display_name, r.status, e.state
+   ORDER BY m.display_name ASC
+`;
+
 /* ------------------------------------------------------------------ */
 /* 行类型（snake_case）与映射（→ camelCase）                            */
 /* 映射集中在本文件，repo.ts 只做 SQL 与事务编排，避免映射散落。        */

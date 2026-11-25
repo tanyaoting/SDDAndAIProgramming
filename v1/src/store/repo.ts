@@ -1,61 +1,28 @@
 import Database from 'better-sqlite3';
 import { toZonedIsoString } from '../clock.js';
 import { ERROR_CODES, SdrError } from '../errors.js';
-import type {
-  AttributionKind, Clock, Entry, EntryMember, EntryState, Event, LinkType,
-  Report, ReportStatus, SourceLink,
-} from '../types.js';
-import { errorMessage, isUniqueViolation, toEntry, toEvent, toReport, toSourceLink } from './mapping.js';
-import type { EntryMemberRow, EntryRow, EventRow, ReportRow, SourceLinkRow } from './mapping.js';
+import type { Clock, Entry, EntryMember, Event, Report, ReportStatus, SourceLink } from '../types.js';
+import { errorMessage, isUniqueViolation, toEntry, toEvent, toReport, toSourceLink } from './model.js';
+import type { EntryMemberRow, EntryRow, EventRow, ReportRow, SourceLinkRow } from './model.js';
 import { initSchema } from './schema.js';
 
-/* 输入契约 */
-
-export interface EntryMemberInput {
-  readonly memberId: number;
-  readonly role: 'primary' | 'co';
-}
-
-export interface SourceLinkInput {
-  readonly linkType: LinkType;
-  readonly target: string;
-}
-
-export interface EntryInput {
-  readonly timeBlock: string;
-  readonly state: EntryState;
-  readonly content: string;
-  readonly orderIndex: number;
-  readonly originalDate?: string;
-  readonly sourceEventId?: number;
-  readonly isManual: boolean;
-  readonly attributionKind: AttributionKind;
-  readonly attributionConfirmed: boolean;
-  readonly members: readonly EntryMemberInput[];
-  readonly links: readonly SourceLinkInput[];
-}
-
-export interface ReportInput {
-  readonly memberId: number;
-  readonly reportDate: string;
-  readonly status: ReportStatus;
-  readonly body?: string;
-}
-
-export interface ReportBundleInput extends ReportInput {
-  readonly entries: readonly EntryInput[];
-}
-
-export interface ReportBundle {
-  readonly report: Report;
-  readonly entries: readonly Entry[];
-  readonly links: readonly SourceLink[];
-}
-
-export interface InsertEventResult {
-  readonly id: number;
-  readonly inserted: boolean;
-}
+import type {
+  ReportBundle,
+  ReportBundleInput,
+  ReportInput,
+  InsertEventResult,
+  SummaryQueryRow,
+} from './model.js';
+import { SUMMARY_SQL } from './model.js';
+export type {
+  EntryInput,
+  EntryMemberInput,
+  InsertEventResult,
+  ReportBundle,
+  ReportBundleInput,
+  ReportInput,
+  SourceLinkInput,
+} from './model.js';
 
 /* 数据访问层 */
 
@@ -253,6 +220,26 @@ export class Repo {
       )
       .all(reportId) as SourceLinkRow[];
     return rows.map(toSourceLink);
+  }
+
+  /**
+   * 团队汇总查询（ADR-006）：投影白名单，只取 display_name / status / state / COUNT，
+   * 不读取 entry.content，隐私边界设在查询层。
+   */
+  findSummaryRows(reportDate: string): SummaryQueryRow[] {
+    return this.db.prepare(SUMMARY_SQL).all(reportDate) as SummaryQueryRow[];
+  }
+
+  /** 删除日报及其全部条目、归属与链接（用于重新生成草稿）。 */
+  deleteReport(reportId: number): void {
+    const remove = this.db.transaction((id: number): void => {
+      const entryIds = 'SELECT id FROM entry WHERE report_id = ?';
+      this.db.prepare(`DELETE FROM entry_member WHERE entry_id IN (${entryIds})`).run(id);
+      this.db.prepare(`DELETE FROM source_link WHERE entry_id IN (${entryIds})`).run(id);
+      this.db.prepare('DELETE FROM entry WHERE report_id = ?').run(id);
+      this.db.prepare('DELETE FROM report WHERE id = ?').run(id);
+    });
+    remove(reportId);
   }
 
   /** 删除条目及其归属、链接（无级联删除，须按外键顺序清理）。 */

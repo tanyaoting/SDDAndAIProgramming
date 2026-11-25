@@ -79,3 +79,12 @@ export interface SourceLink {
   readonly linkType: LinkType;
   readonly target: string;
 }
+
+/** 团队汇总行：仅计数与状态分布，不含条目正文（ADR-006）。 */
+export interface SummaryRow {
+  readonly memberId: number;
+  readonly displayName: string;
+  readonly status: ReportStatus | null;
+  readonly entryCount: number;
+  readonly byState: Readonly<Record<EntryState, number>>;
+}
