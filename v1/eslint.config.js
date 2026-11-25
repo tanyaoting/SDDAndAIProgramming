@@ -47,6 +47,21 @@ export default tseslint.config(
     },
   },
   {
+    // 唯一的外部请求出口不得依赖任何业务模块（design.md §2）。
+    files: ['src/http.ts'],
+    rules: {
+      'no-restricted-imports': [
+        'error',
+        {
+          patterns: [
+            noSqlitePattern,
+            { group: ['./*', '../*'], message: 'http.ts 不得 import 任何业务模块（design.md §2）' },
+          ],
+        },
+      ],
+    },
+  },
+  {
     files: ['src/generator/**/*.ts'],
     rules: {
       'no-restricted-imports': ['error', { patterns: [noSqlitePattern, noCollectorsPattern] }],
