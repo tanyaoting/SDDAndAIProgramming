@@ -135,3 +135,9 @@ export function toZonedIsoString(clock: Clock, at: Date): string {
 export function parseInstant(value: string | number): Date {
   return new Date(value);
 }
+
+/** 目标时区下的一天内分钟数（0..1439），供时段归位使用（ADR-005）。 */
+export function minutesOfDay(clock: Clock, at: Date): number {
+  const p = zonedParts(at, clock.timeZone);
+  return p.hour * 60 + p.minute;
+}
