@@ -631,6 +631,8 @@ export function sendMail(payload: MailPayload): Promise<{ ok: true; messageId: s
 | 类图 | `v1/docs/uml/02-class.png` | `02-class.md` | 类与聚合 ↔ §2 模块职责、§4.1 类型（含 `EntryMember`、`Clock`） |
 | ER 图 | `v1/docs/uml/03-er.png` | `03-er.md` | 9 张表 ↔ §3.2 表结构 |
 | 泳道图 | `v1/docs/uml/04-swimlane.png` | `04-swimlane.md` | 采集/生成/推送泳道 ↔ ADR-004、ADR-005、ADR-007 |
+| 序列图（采集生成） | `v1/docs/uml/05-sequence-generate.png` | `05-sequence-generate.md` | 三源采集→归一→生成→四表事务 ↔ §1 数据流 1～3、§4.3 函数契约 |
+| 序列图（推送补发） | `v1/docs/uml/06-sequence-push.png` | `06-sequence-push.md` | 正常推送/失败告警/补发去重 ↔ §1 数据流 4～5、CS-08、ADR-007 |
 
-> 渲染命令（复现用）：`mmdc -i <md> -o <png> -e png --size 1800 -b white`，mermaid-cli 12.2.0，2026-11-26。
+> 渲染命令（复现用）：`mmdc -i <md> -o <png> -e png --size 1800 -b white`，mermaid-cli 12.2.0，2026-11-26；序列图用 `--size 2000`。
 > 图与源码同目录存放：源码保证可追溯、可改，渲染图满足"工具绘制并作为附件"的交付要求。
