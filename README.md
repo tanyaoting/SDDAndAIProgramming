@@ -24,12 +24,20 @@
 │   ├── src/                        # 源码（sdr 为包名，见 package.json）
 │   ├── tests/                      # 测试（vitest）
 │   └── .env.example                # 环境变量键名样例（禁止填真实值）
+├── v2/                             # 阶段二工程根（Superpowers 实现，从零重写）
+│   ├── HANDOVER.md                 # v1 → v2 交接：ADR 结论/接口契约/表结构教训（参考，非起点代码）
+│   ├── docs/plans/                 # Superpowers 计划文档
+│   ├── docs/reviews/               # code-review 互评记录
+│   ├── src/ tests/                 # 由 TDD 逐步长出（初始化时为空壳）
+│   └── .env.example                # 环境变量键名样例
 └── README.md
 ```
 
 `docs/` 只存放课程要求的交付物；框架稿、访谈记录等过程材料统一置于 `backup/`，保留以支撑证据追溯，但不进入交付清单。
 
-`v1/` 是阶段一的 Node 工程根（`package.json`、`tsconfig`、ESLint、vitest 均在此目录），规范中的 `src/`、`tests/` 路径一律相对该目录解释，仓库根目录保持规范与文档整洁。阶段二 v2 将并列新建 `v2/`，禁止复制 v1 代码。
+`v1/` 是阶段一的 Node 工程根（`package.json`、`tsconfig`、ESLint、vitest 均在此目录），规范中的 `src/`、`tests/` 路径一律相对该目录解释，仓库根目录保持规范与文档整洁。
+
+`v2/` 是阶段二的独立工程根，**禁止复制 v1 代码**：只允许带走结论性知识（`v2/HANDOVER.md` 记录了 ADR 结论、接口契约、SQLite 表结构与踩坑），实现须按 Superpowers 工作流与 TDD 从零写出。
 
 ## 提交规范
 
@@ -46,5 +54,9 @@
 | 规范 · 任务 | `specs/tasks.md` | v0.3（25 任务，关键路径 70 人时） |
 | 评审 · 设计缺陷单 | `specs/design-review.md` | 16 条（阻塞 3 / 高 3 / 中 9 / 低 1），已全部关闭 |
 | 交付 · 业务调研报告 | `docs/业务调研报告.docx` | 第 1 章完成，第 2–6 章待补 |
+| 交付 · 需求/系统分析/技术调研 | `docs/需求分析报告.docx`、`docs/系统分析报告.docx`、`docs/技术调研报告.docx` | 已归档 |
+| 过程 · Superpowers 拆解 | `docs/Superpowers技能拆解笔记.md` | systematic-debugging |
+| 阶段二 · 交接文档 | `v2/HANDOVER.md` | v1 结论/契约/表结构教训，7 章 |
+| 阶段二 · 工程 | `v2/` | 已初始化（工具链通过，业务代码待 TDD 长出） |
 | 过程 · 调研纪要 | `backup/业务调研纪要.docx` | 18 项访谈结论（支撑 IR-01～08） |
 | 过程 · 报告框架 | `backup/业务调研报告-框架稿.docx` | 已被第一章完成版取代 |
