@@ -4,6 +4,9 @@
 !.env.example
 *.token
 
+# 原始截图目录：含未脱敏凭证，禁止入仓；脱敏压缩版置于 docs/screenshots/
+picture/
+
 # 运行产物
 *.db
 *.sqlite
