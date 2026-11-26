@@ -1,70 +1,89 @@
 # sdr v2（Superpowers 阶段）
 
-同一产品的第二遍实现：**从零写，禁止复制 v1 代码**。这一版要留下的证据不是"能跑"，而是"用另一套工作流也能做出同等质量的系统"——因此 TDD 的红绿痕迹、计划文档、互评记录与 v1 的工时/缺陷对比同等重要。
+同一产品的第二遍实现：**从零写，禁止复制 v1 代码**。证据重点是 TDD 红绿痕迹、计划文档、互评与门禁，而不只是「能跑」。
+
+**当前状态**：关键路径已交付；测试 **30 文件 / 126 用例**；tag **`v2-superpowers`** → `6974b2a`（最后一次改代码/测试；其后为文档）。
 
 ## 先读什么
 
-1. `HANDOVER.md` —— v1 的结论、契约、表结构与踩坑（**参考，不是起点代码**）
-2. `../specs/` —— 三份规范（proposal / design / tasks），v2 与 v1 共用同一套编号
-3. `../docs/Superpowers技能拆解笔记.md` —— 工作流拆解
+1. `HANDOVER.md` —— ADR / 契约 / 表结构 / 踩坑（参考，不是起点代码）
+2. `../specs/` —— proposal / design / tasks（与 v1 共用编号）
+3. `docs/plans/` —— design-delta 与 implementation 计划
+4. `docs/第3周-交付物索引.md` —— 站会、勾销、互评、覆盖率、门禁等过程证据
+
+## 相对 v1 的改进（delta）
+
+| 项 | 做法 |
+|---|---|
+| YAML | `yaml` 包 + zod（不手写子集解析） |
+| Schema | `PRAGMA user_version` 迁移；首版含 `member.email` |
+| 推送 | 收件人优先 `member.email`，再回退环境变量 / `--to` / `SMTP_FROM` |
+| HTTP | 公共分页；超限 `SDR-E104`，不返回部分结果 |
 
 ## 目录
 
 ```
 v2/
-├── HANDOVER.md          # 交接：结论与教训（不复制代码）
-├── docs/plans/          # Superpowers 计划文档（writing-plans 产物）
-├── docs/reviews/        # code-review 互评记录
-├── src/                 # 由 TDD 逐步长出
-├── tests/               # 测试先行
-├── .env.example         # 环境变量键名
-├── eslint.config.js     # 含 ADR-007 的 no-new-Date 约束
-├── tsconfig.json        # strict + noUncheckedIndexedAccess + exactOptionalPropertyTypes
-├── tsconfig.build.json
-└── vitest.config.ts
+├── HANDOVER.md
+├── docs/
+│   ├── plans/              # writing-plans
+│   ├── reviews/            # code-review 互评
+│   ├── 测试记录.md / 覆盖率报告.md
+│   └── 第3周-*.md
+├── config/                 # work-hours.yaml / keywords.yaml（重写）
+├── src/                    # cli / collectors / generator / publisher / store
+├── tests/                  # 单测 + integration/
+├── .env.example
+├── pnpm-workspace.yaml     # allowBuilds.better-sqlite3: false
+└── package.json            # bin: sdr → dist/cli.js
 ```
 
 ## 命令
 
 ```bash
-pnpm install        # 安装依赖
-pnpm typecheck      # tsc --noEmit
-pnpm lint           # eslint .
-pnpm test           # vitest run（初始化阶段 0 用例即通过）
-pnpm build          # 产出 dist/
+pnpm install
+pnpm typecheck    # tsc --noEmit
+pnpm lint         # eslint .
+pnpm test         # vitest run
+pnpm build        # 产出 dist/
+pnpm start -- <cmd> …   # 或：node dist/cli.js <cmd> …
 ```
 
-Node ≥ 22 LTS，包管理统一用 pnpm。
+覆盖率（可选，报告摘要已入仓）：`pnpm exec vitest run --coverage`（`coverage/` 不入仓）。
 
-## 依赖引入原则
+### CLI
 
-初始化时**没有**任何运行时依赖，只装了工具链（typescript / vitest / eslint / prettier / @types/node）。运行库随任务引入，引一个记一条：
+```text
+sdr <collect|generate|edit|push|history|serve> [options]
+```
 
-| 依赖 | 引入时机 | 理由（写入 ADR 或计划） |
-|---|---|---|
-| `zod` | 配置校验任务 | 环境变量与 YAML 的结构校验 |
-| `better-sqlite3` | 存储任务 | 见下方安装约束 |
-| `nodemailer` | 推送任务 | SMTP |
-| `undici`（dev） | 首个采集任务 | `MockAgent` 进程内拦截，采集层可离线 TDD |
+| 命令 | 常用参数 |
+|---|---|
+| `collect` | `--date`、`--source`（可重复）、`--manual` + `--ref`（成对） |
+| `generate` | `--date`、`--member`、`--force` |
+| `edit` | `--member`、`--add-text`/`--ref`、`--accept-attribution [--all]` |
+| `push` | `--date`、`--dry-run`、`--to` |
+| `history` | `--member`、`--from`、`--to`、`--actor` |
+| `serve` | 常驻调度；`Ctrl+C` 结束 |
 
-## 已知安装约束
+先 `cp .env.example .env` 并填入凭证。库中需有成员（当前无 `member` 子命令时可用一次性脚本 `insertMember`，见课程答疑/演示笔记）。本地扫描根目录环境变量为 **`SDR_LOCAL_ROOT`**（缺省 cwd）。
 
-`better-sqlite3` 是原生模块，有两个坑（HANDOVER §4.2 教训 8）：
+Node ≥ 22 LTS，包管理用 pnpm。
 
-1. **不需要 `node-gyp`**：13.x 包内自带 8 个预编译二进制。
-2. **pnpm 10+ 会拦截其 `install` 脚本**，报 `ERR_PNPM_IGNORED_BUILDS`。引入时须在 `pnpm-workspace.yaml` 写：
+## 安装约束（better-sqlite3）
+
+`pnpm-workspace.yaml` 须含：
 
 ```yaml
 allowBuilds:
   better-sqlite3: false
 ```
 
-装完立即验证：`node -e "new (require('better-sqlite3'))(':memory:')"`。
+验证：`node -e "new (require('better-sqlite3'))(':memory:')"`。
 
 ## 纪律
 
-- 提交格式：`feat|fix|test|docs: [任务编号] 简述`
-- 一个提交对应一个可验证的交付物；测试先行的痕迹要在提交顺序上看得出来
-- 凭证只经环境变量注入；`.env`、`data/`、`dist/`、`coverage/` 不入仓
-- 任何改动验收标准的动作，须同一次提交回写 `../specs/proposal.md`
-- AI 使用日志每周提交（资格项）
+- 提交：`feat|fix|test|docs: [T-0xx] …`；红在绿前
+- 凭证只经环境变量；`.env`、`data/`、`dist/`、`coverage/` 不入仓
+- 改验收标准须同提交回写 `../specs/proposal.md`
+- 远端 CI 与本地四门禁对齐（见仓库根 `.github/workflows/ci.yml`）
