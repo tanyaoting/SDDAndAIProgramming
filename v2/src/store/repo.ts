@@ -1,7 +1,7 @@
 import type Database from 'better-sqlite3';
 import { parseInstant, toZonedIsoString } from '../clock.js';
 import { ERROR_CODES, SdrError } from '../errors.js';
-import type { Clock, EntryState, Event, Member, Report, ReportStatus, SummaryRow } from '../types.js';
+import type { Clock, Entry, EntryState, Event, Member, Report, ReportStatus, SummaryRow } from '../types.js';
 import { createAuditWrites, createHistoryAccess, selectMemberById } from './repo-extra.js';
 import {
   emptyByState,
@@ -9,6 +9,7 @@ import {
   mapEvent,
   mapMemberFull,
 } from './repo-map.js';
+import { createRepoCliQueries } from './repo-cli.js';
 import {
   SUMMARY_ROWS_SQL,
   type ConsentInput,
@@ -71,6 +72,19 @@ export interface Repo {
   insertIngestionRun(input: IngestionRunInput): number;
   insertPushLog(input: PushLogInput): number;
   insertConsent(input: ConsentInput): number;
+  listActiveMembers(): Member[];
+  findMemberByGithubLogin(login: string): Member | undefined;
+  findEventsForDate(memberId: number, reportDate: string): Event[];
+  hasPushLogOk(reportDate: string, channel: string): boolean;
+  removeEntryById(entryId: number): boolean;
+  addManualTextEntry(
+    memberId: number,
+    reportDate: string,
+    text: string,
+    ref: string,
+    timeBlock: string,
+  ): number;
+  getEntry(entryId: number): Entry | undefined;
 }
 
 function iso(clock: Clock, at: Date): string {
@@ -118,6 +132,7 @@ export function createRepo(db: Database.Database, clock: Clock): Repo {
 
   const { findHistory } = createHistoryAccess(db, getMember);
   const { insertIngestionRun, insertPushLog, insertConsent } = createAuditWrites(db, clock);
+  const cliQueries = createRepoCliQueries(db, clock);
 
   function upsertEvent(event: Event): Event {
     try {
@@ -297,5 +312,6 @@ export function createRepo(db: Database.Database, clock: Clock): Repo {
     insertIngestionRun,
     insertPushLog,
     insertConsent,
+    ...cliQueries,
   };
 }

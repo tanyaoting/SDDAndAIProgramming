@@ -24,7 +24,7 @@ const smtpConfig: SdrConfig = {
 };
 
 describe('T-020 push CLI', () => {
-  it('--dry-run 将正文写到 stdout', () => {
+  it('--dry-run 将正文写到 stdout', async () => {
     const db = openDatabase(':memory:');
     const repo = createRepo(db, clock);
     const member = repo.insertMember({
@@ -44,7 +44,7 @@ describe('T-020 push CLI', () => {
       entries: [],
     });
     const chunks: string[] = [];
-    const code = runPush(
+    const code = await runPush(
       { repo, clock, config: smtpConfig },
       { date: '2026-11-25', dryRun: true },
       (text) => chunks.push(text),
@@ -79,7 +79,7 @@ describe('T-020 push CLI', () => {
     });
     const code = await runPush(
       { repo, clock, config: smtpConfig, transport },
-      { date: '2026-11-25' },
+      { date: '2026-11-25', forceSchedule: true },
     );
     expect(code).toBe(EXIT.OK);
     const count = (db.prepare(`SELECT COUNT(*) AS c FROM push_log WHERE result = 'ok'`).get() as {

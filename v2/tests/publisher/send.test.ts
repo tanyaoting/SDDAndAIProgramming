@@ -4,6 +4,7 @@ import { ERROR_CODES } from '../../src/errors.js';
 import {
   createMailTransport,
   sendMail,
+  type MailTransport,
   type SmtpSettings,
 } from '../../src/publisher/mail.js';
 
@@ -37,16 +38,24 @@ describe('T-018 sendMail', () => {
 
   it('认证失败映射 SDR-E401', async () => {
     const transport = nodemailer.createTransport({
-      host: '127.0.0.1',
-      port: 1,
-      secure: false,
-      auth: { user: 'bad', pass: 'bad' },
-      connectionTimeout: 200,
-      greetingTimeout: 200,
-      socketTimeout: 200,
+      streamTransport: true,
+      newline: 'unix',
+      buffer: true,
     });
+    const failing = transport as MailTransport & {
+      sendMail: () => Promise<never>;
+    };
+    failing.sendMail = async () => {
+      const err = new Error('Invalid login: 535 Authentication failed') as Error & {
+        code: string;
+        responseCode: number;
+      };
+      err.code = 'EAUTH';
+      err.responseCode = 535;
+      throw err;
+    };
     await expect(
-      sendMail(transport, { to: ['x@y.com'], subject: 's', text: 't' }),
+      sendMail(failing, { to: ['x@y.com'], subject: 's', text: 't' }),
     ).rejects.toMatchObject({ code: ERROR_CODES.SMTP_AUTH_FAILED });
   });
 
