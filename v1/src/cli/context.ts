@@ -2,6 +2,7 @@ import { mkdirSync } from 'node:fs';
 import { dirname, isAbsolute, join } from 'node:path';
 import { systemClock } from '../clock.js';
 import type { Clock } from '../types.js';
+import { applyEnvFile } from '../env-file.js';
 import type { SdrConfig } from '../config.js';
 import { loadConfig } from '../config.js';
 import type { Mailer } from '../publisher/mail.js';
@@ -39,8 +40,9 @@ function resolveDbPath(cwd: string, dbPath: string): string {
 }
 
 export function createContext(options: CreateContextOptions = {}): CliContext {
-  const env = options.env ?? process.env;
   const cwd = options.cwd ?? process.cwd();
+  // 显式传入 env（测试）不读文件；正常运行自动合并当前目录 .env。
+  const env = options.env ?? applyEnvFile(join(cwd, '.env'), { ...process.env });
   const clock = options.clock ?? systemClock;
   const config = loadConfig(env);
   const repo = openRepo(resolveDbPath(cwd, config.dbPath), clock);
