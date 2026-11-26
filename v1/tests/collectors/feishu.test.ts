@@ -2,7 +2,7 @@ import { getGlobalDispatcher, MockAgent, setGlobalDispatcher } from 'undici';
 import type { Dispatcher } from 'undici';
 import { afterEach, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 import { FixedClock } from '../../src/clock.js';
-import { collectFeishu, mapFeishuStatus } from '../../src/collectors/feishu.js';
+import { collectFeishu, collectFeishuWithToken, mapFeishuStatus } from '../../src/collectors/feishu.js';
 import type { FeishuCollectOptions } from '../../src/collectors/feishu.js';
 import { ERROR_CODES } from '../../src/errors.js';
 
@@ -144,5 +144,31 @@ describe('T-007 飞书任务采集器', () => {
     await expect(collectFeishu(makeOptions())).rejects.toMatchObject({
       code: ERROR_CODES.FEISHU_FIELD_MISSING,
     });
+  });
+
+  it('用户身份路径直接使用传入 token，不再申请 tenant_access_token', async () => {
+    tasksReply(mockAgent.get(BASE), [
+      {
+        guid: 't9',
+        summary: '用户身份任务',
+        status: 'completed',
+        completed_at: String(IN_WINDOW),
+        assignee: { open_id: 'ou_alice' },
+      },
+    ]);
+
+    const events = await collectFeishuWithToken({
+      accessToken: 'u-token-123',
+      since: new Date('2026-11-25T00:00:00+08:00'),
+      until: new Date('2026-11-26T00:00:00+08:00'),
+      runId: 'run-2',
+      clock,
+      resolveMemberId: (openId) => (openId === 'ou_alice' ? 1 : undefined),
+      sleep: () => Promise.resolve(),
+      logger: noop,
+    });
+
+    expect(events).toHaveLength(1);
+    expect(events[0]).toMatchObject({ sourceId: 't9', memberId: 1, runId: 'run-2' });
   });
 });

@@ -41,7 +41,7 @@ export class Repo {
     private readonly db: Database.Database,
     private readonly clock: Clock,
   ) {
-    this.members = new MemberRepo(db);
+    this.members = new MemberRepo(db, clock);
     this.audit = new AuditRepo(db, clock);
     this.history = new HistoryRepo(db);
     this.entries = new EntryRepo(db);

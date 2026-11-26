@@ -12,11 +12,18 @@ export class UsageError extends Error {
 
 export interface ParsedArgs {
   readonly command: string;
+  /** `member add|list` 这类二级命令（其余命令无此字段）。 */
+  readonly subcommand?: string;
   readonly values: ReadonlyMap<string, string | true | readonly string[]>;
 }
 
 const BOOLEAN_FLAGS = new Set(['force', 'leave', 'dry-run', 'accept-attribution', 'all', 'help']);
 const REPEATABLE_FLAGS = new Set(['source', 'manual', 'member', 'to']);
+
+/** 二级命令白名单；未知名直接视为参数错误。 */
+const SUBCOMMANDS: Readonly<Record<string, readonly string[]>> = {
+  member: ['add', 'list'],
+};
 
 /** 每个命令允许的参数；其余一律视为参数错误（退出码 2）。 */
 const COMMAND_FLAGS: Readonly<Record<string, readonly string[]>> = {
@@ -26,6 +33,8 @@ const COMMAND_FLAGS: Readonly<Record<string, readonly string[]>> = {
   push: ['date', 'dry-run', 'to', 'help'],
   history: ['member', 'from', 'to', 'actor', 'help'],
   serve: ['push-time', 'interval', 'help'],
+  member: ['github', 'name', 'feishu-open-id', 'manager', 'help'],
+  'feishu-auth': ['member', 'port', 'help'],
   help: ['help'],
 };
 
@@ -46,6 +55,17 @@ export function parseArgs(argv: readonly string[]): ParsedArgs {
   }
   if (COMMAND_FLAGS[command] === undefined) {
     throw new UsageError(`未知命令：${command}`);
+  }
+
+  let subcommand: string | undefined;
+  const allowedSubcommands = SUBCOMMANDS[command];
+  const candidate = rest[0];
+  if (allowedSubcommands !== undefined && candidate !== undefined && !candidate.startsWith('-')) {
+    const next = rest.shift() ?? '';
+    if (!allowedSubcommands.includes(next)) {
+      throw new UsageError(`未知子命令：${command} ${next}`);
+    }
+    subcommand = next;
   }
 
   const values = new Map<string, string | true | readonly string[]>();
@@ -81,7 +101,7 @@ export function parseArgs(argv: readonly string[]): ParsedArgs {
     }
   }
 
-  return { command, values };
+  return { command, ...(subcommand === undefined ? {} : { subcommand }), values };
 }
 
 export function flagValue(args: ParsedArgs, name: string): string | undefined {

@@ -4,8 +4,10 @@ import { ManualInputError } from './collectors/manual.js';
 import { exitCode, SdrError } from './errors.js';
 import { runCollect } from './cli/collect.js';
 import { runEdit } from './cli/edit.js';
+import { runFeishuAuth } from './cli/feishu-auth.js';
 import { runGenerate } from './cli/generate.js';
 import { runHistory } from './cli/history.js';
+import { runMember } from './cli/member.js';
 import { runPush } from './cli/push.js';
 import { runServe } from './cli/serve.js';
 import type { ParsedArgs } from './cli/args.js';
@@ -39,6 +41,9 @@ export const USAGE = [
   '  push      --date [--dry-run] [--to 邮箱]...',
   '  history   --member id [--from YYYY-MM-DD] [--to YYYY-MM-DD] [--actor id]',
   '  serve     [--push-time HH:mm] [--interval 秒]',
+  '  member    add --github 登录名 [--name 姓名] [--feishu-open-id id] [--manager id]',
+  '            | list',
+  '  feishu-auth --member id [--port 8787]',
 ].join('\n');
 
 function exitCodeOfCollect(summary: { ok: number; failed: number }): number {
@@ -61,6 +66,10 @@ async function dispatch(context: CliContext, args: ParsedArgs): Promise<number> 
       return runHistory(context, args);
     case 'serve':
       return runServe(context, args);
+    case 'member':
+      return runMember(context, args);
+    case 'feishu-auth':
+      return runFeishuAuth(context, args);
     default:
       context.stdout(USAGE);
       return EXIT_CODES.ok;

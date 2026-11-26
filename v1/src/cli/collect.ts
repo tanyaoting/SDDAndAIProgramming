@@ -1,10 +1,11 @@
 import { dayKey, dayWindow, toZonedIsoString } from '../clock.js';
-import { collectFeishu } from '../collectors/feishu.js';
+import { collectFeishu, collectFeishuWithToken } from '../collectors/feishu.js';
 import { collectGithub } from '../collectors/github.js';
 import { collectLocal } from '../collectors/local.js';
 import { assertManualPair, collectManual } from '../collectors/manual.js';
 import { dedupe } from '../collectors/normalize.js';
 import { SdrError } from '../errors.js';
+import { ensureFreshToken, FeishuTokenStore, resolveTokenFilePath } from '../feishu-tokens.js';
 import { notifyFailure } from '../publisher/alert.js';
 import type { Event, Source } from '../types.js';
 import type { ParsedArgs } from './args.js';
@@ -71,16 +72,47 @@ async function collectOne(
       return { source, events };
     }
     case 'feishu': {
-      const events = await collectFeishu({
-        appId: context.config.feishu.appId,
-        appSecret: context.config.feishu.appSecret,
-        since: window.since,
-        until: window.until,
-        runId,
-        clock: context.clock,
-        resolveMemberId: (openId) => context.repo.members.findByFeishuOpenId(openId)?.id,
-        logger: context.stderr,
-      });
+      const store = new FeishuTokenStore(resolveTokenFilePath(context.env, context.cwd));
+      const tokens = store.list();
+      if (tokens.length === 0) {
+        // 未授权任何成员时回退应用身份（只能看到应用自己创建/被分享的任务）。
+        const events = await collectFeishu({
+          appId: context.config.feishu.appId,
+          appSecret: context.config.feishu.appSecret,
+          since: window.since,
+          until: window.until,
+          runId,
+          clock: context.clock,
+          resolveMemberId: (openId) => context.repo.members.findByFeishuOpenId(openId)?.id,
+          logger: context.stderr,
+        });
+        return { source, events };
+      }
+
+      // 每个已授权成员用自己的 user_access_token 采集，再按 assignee.open_id 归属。
+      const events: Event[] = [];
+      for (const record of tokens) {
+        const fresh = await ensureFreshToken(record, {
+          app: context.config.feishu,
+          clock: context.clock,
+          store,
+          logger: context.stderr,
+        });
+        const ownerId = context.repo.members.findById(fresh.memberId)?.id;
+        const collected = await collectFeishuWithToken({
+          accessToken: fresh.accessToken,
+          since: window.since,
+          until: window.until,
+          runId,
+          clock: context.clock,
+          secrets: [fresh.refreshToken],
+          resolveMemberId: (openId) =>
+            context.repo.members.findByFeishuOpenId(openId)?.id ??
+            (openId === fresh.openId ? ownerId : undefined),
+          logger: context.stderr,
+        });
+        events.push(...collected);
+      }
       return { source, events };
     }
     case 'local': {

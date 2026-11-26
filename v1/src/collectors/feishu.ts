@@ -27,6 +27,27 @@ export interface FeishuCollectOptions {
   readonly logger?: (line: string) => void;
 }
 
+/** 已持有 user_access_token 的采集入口（用户身份路径）。 */
+export interface FeishuTokenCollectOptions {
+  readonly accessToken: string;
+  readonly since: Date;
+  readonly until: Date;
+  readonly runId: string;
+  readonly clock: Clock;
+  readonly resolveMemberId: (openId: string) => number | undefined;
+  readonly secrets?: readonly string[];
+  readonly sleep?: (ms: number) => Promise<void>;
+  readonly timeoutMs?: number;
+  readonly maxRetries?: number;
+  readonly logger?: (line: string) => void;
+}
+
+interface FeishuTaskMember {
+  readonly id?: string;
+  readonly type?: string;
+  readonly role?: string;
+}
+
 interface FeishuTask {
   readonly guid?: string;
   readonly summary?: string;
@@ -34,7 +55,10 @@ interface FeishuTask {
   readonly completed_at?: string;
   readonly updated_at?: string;
   readonly created_at?: string;
+  /** tenant 旧字段。 */
   readonly assignee?: { readonly open_id?: string } | null;
+  /** task/v2 返回的成员列表，负责人 role=assignee。 */
+  readonly members?: readonly FeishuTaskMember[];
 }
 
 interface FeishuTokenResponse {
@@ -67,6 +91,21 @@ function requireField<T>(value: T | undefined, field: string): T {
     });
   }
   return value;
+}
+
+/** 负责人 open_id：兼容 tenant 旧字段与 task/v2 的 members（role=assignee）。 */
+function assigneeOpenId(task: FeishuTask): string | undefined {
+  const legacy = task.assignee?.open_id;
+  if (legacy !== undefined && legacy !== '') return legacy;
+  const member = (task.members ?? []).find((item) => item.role === 'assignee');
+  const id = member?.id;
+  return id === undefined || id === '' ? undefined : id;
+}
+
+function isCompleted(task: FeishuTask): boolean {
+  if (task.status !== undefined && mapFeishuStatus(task.status) === 'done') return true;
+  const completed = task.completed_at;
+  return completed !== undefined && completed !== '' && completed !== '0';
 }
 
 function taskTime(task: FeishuTask): Date {
@@ -126,6 +165,19 @@ function toAuthError(error: unknown): unknown {
 
 export async function collectFeishu(options: FeishuCollectOptions): Promise<Event[]> {
   const token = await fetchTenantToken(options);
+  return collectFeishuWithToken({
+    ...options,
+    accessToken: token,
+    secrets: [token, options.appSecret],
+  });
+}
+
+/** 用给定 token 分页拉取任务并转换为事件（应用身份与用户身份共用）。 */
+export async function collectFeishuWithToken(
+  options: FeishuTokenCollectOptions,
+): Promise<Event[]> {
+  const token = options.accessToken;
+  const secrets = [token, ...(options.secrets ?? [])];
   const events: Event[] = [];
   let pageToken = '';
   let page = 0;
@@ -142,7 +194,7 @@ export async function collectFeishu(options: FeishuCollectOptions): Promise<Even
     try {
       response = await request(url, {
         headers: { Authorization: `Bearer ${token}` },
-        secrets: [token, options.appSecret],
+        secrets,
         ...(options.sleep === undefined ? {} : { sleep: options.sleep }),
         ...(options.timeoutMs === undefined ? {} : { timeoutMs: options.timeoutMs }),
         ...(options.maxRetries === undefined ? {} : { maxRetries: options.maxRetries }),
@@ -173,12 +225,12 @@ export async function collectFeishu(options: FeishuCollectOptions): Promise<Even
       const occurredAt = taskTime(task);
       if (occurredAt < options.since || occurredAt >= options.until) continue;
 
-      const openId = task.assignee?.open_id;
+      const openId = assigneeOpenId(task);
       if (openId === undefined) continue;
       const memberId = options.resolveMemberId(openId);
       if (memberId === undefined) continue;
 
-      const state = mapFeishuStatus(task.status);
+      const state: EntryState = isCompleted(task) ? 'done' : 'doing';
       events.push({
         memberId,
         source: 'feishu',

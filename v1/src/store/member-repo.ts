@@ -1,5 +1,7 @@
 import type Database from 'better-sqlite3';
-import type { Member } from '../types.js';
+import { toZonedIsoString } from '../clock.js';
+import { ERROR_CODES, SdrError } from '../errors.js';
+import type { Clock, Member } from '../types.js';
 
 /**
  * 成员查询（design.md §3.2 member / §4.2 history 权限）。
@@ -28,8 +30,53 @@ function toMember(row: MemberRow): Member {
 
 const SELECT_ALL = 'SELECT * FROM member';
 
+export interface MemberInput {
+  readonly githubLogin: string;
+  readonly displayName: string;
+  readonly feishuOpenId?: string;
+  readonly managerId?: number;
+}
+
 export class MemberRepo {
-  constructor(private readonly db: Database.Database) {}
+  constructor(
+    private readonly db: Database.Database,
+    private readonly clock: Clock,
+  ) {}
+
+  /** 录入成员；github_login / feishu_open_id 冲突转 SDR-E501，避免把驱动异常漏到 CLI。 */
+  insert(input: MemberInput): number {
+    try {
+      const info = this.db
+        .prepare(
+          `INSERT INTO member (github_login, feishu_open_id, display_name, manager_id, active, created_at)
+           VALUES (?, ?, ?, ?, 1, ?)`,
+        )
+        .run(
+          input.githubLogin,
+          input.feishuOpenId ?? null,
+          input.displayName,
+          input.managerId ?? null,
+          toZonedIsoString(this.clock, this.clock.now()),
+        );
+      return Number(info.lastInsertRowid);
+    } catch (error) {
+      throw new SdrError(
+        ERROR_CODES.STORE_TRANSACTION_FAILED,
+        `成员写入失败（GitHub 登录名或飞书 open_id 已被占用）：${input.githubLogin}`,
+        { source: 'store', cause: error },
+      );
+    }
+  }
+
+  /** 绑定/解绑飞书账号（OAuth 授权成功后回写 member.feishu_open_id）。 */
+  updateFeishuOpenId(id: number, openId: string | null): void {
+    this.db.prepare('UPDATE member SET feishu_open_id = ? WHERE id = ?').run(openId, id);
+  }
+
+  listAll(): Member[] {
+    const rows = this.db.prepare(`${SELECT_ALL} ORDER BY id ASC`).all() as MemberRow[];
+    return rows.map(toMember);
+  }
 
   findById(id: number): Member | undefined {
     const row = this.db.prepare(`${SELECT_ALL} WHERE id = ?`).get(id) as MemberRow | undefined;

@@ -31,6 +31,22 @@ describe('CLI 参数解析', () => {
     expect(parseArgs(['collect', '--help']).command).toBe('collect');
   });
 
+  it('member 支持二级命令，未知子命令报错', () => {
+    const args = parseArgs(['member', 'add', '--github', 'alice']);
+    expect(args.command).toBe('member');
+    expect(args.subcommand).toBe('add');
+    expect(flagValue(args, 'github')).toBe('alice');
+    expect(parseArgs(['member', 'list']).subcommand).toBe('list');
+    expect(() => parseArgs(['member', 'remove'])).toThrow(UsageError);
+  });
+
+  it('feishu-auth 接受 --member 与 --port', () => {
+    const args = parseArgs(['feishu-auth', '--member', '1', '--port', '8787']);
+    expect(args.command).toBe('feishu-auth');
+    expect(args.subcommand).toBeUndefined();
+    expect(flagValue(args, 'port')).toBe('8787');
+  });
+
   it('日期与成员 id 校验', () => {
     expect(requireDate('2026-11-25', '2026-01-01')).toBe('2026-11-25');
     expect(requireDate(undefined, '2026-01-01')).toBe('2026-01-01');
