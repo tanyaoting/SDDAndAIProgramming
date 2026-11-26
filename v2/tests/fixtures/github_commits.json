@@ -1,0 +1,22 @@
+[
+  {
+    "sha": "aaa111",
+    "commit": {
+      "message": "feat: bootstrap collectors",
+      "author": {
+        "name": "Alice",
+        "date": "2026-11-25T02:00:00Z"
+      }
+    }
+  },
+  {
+    "sha": "bbb222",
+    "commit": {
+      "message": "fix: pagination edge cases",
+      "author": {
+        "name": "Alice",
+        "date": "2026-11-25T08:30:00Z"
+      }
+    }
+  }
+]
