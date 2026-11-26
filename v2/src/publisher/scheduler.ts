@@ -30,7 +30,7 @@ export function missedPushCatchUpDeadline(
   const start = parseInstant(
     `${reportDate}T${String(hour).padStart(2, '0')}:${String(minute).padStart(2, '0')}:00+08:00`,
   );
-  return new Date(start.getTime() + 5 * 60_000);
+  return parseInstant(start.getTime() + 5 * 60_000);
 }
 
 function scheduledMinute(hour: number, minute: number): number {

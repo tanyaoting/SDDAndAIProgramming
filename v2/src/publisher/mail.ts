@@ -1,5 +1,4 @@
-import nodemailer from 'nodemailer';
-import type SMTPTransport from 'nodemailer/lib/smtp-transport/index.js';
+import nodemailer, { type Transporter } from 'nodemailer';
 import { ERROR_CODES, SdrError } from '../errors.js';
 
 export interface RenderMailInput {
@@ -43,11 +42,11 @@ export interface SmtpSettings {
   readonly from: string;
 }
 
-export type MailTransport = nodemailer.Transporter<SMTPTransport.SentMessageInfo>;
+export type MailTransport = Transporter;
 
 export function createMailTransport(
   smtp: SmtpSettings,
-  options: SMTPTransport.Options = {},
+  options: Record<string, unknown> = {},
 ): MailTransport {
   if (options.streamTransport === true) {
     return nodemailer.createTransport({

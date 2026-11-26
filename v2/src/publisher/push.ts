@@ -1,5 +1,6 @@
 import type { Repo } from '../store/repo.js';
 import type { SdrConfig } from '../config.js';
+import type { Clock } from '../types.js';
 import { ERROR_CODES, SdrError } from '../errors.js';
 import { sendFailureAlert } from './alert.js';
 import { resolveRecipients } from './deliver.js';
@@ -12,6 +13,7 @@ import {
 
 export interface PushMemberOptions {
   readonly repo: Repo;
+  readonly clock: Clock;
   readonly config: SdrConfig;
   readonly transport?: MailTransport;
   readonly reportDate: string;
@@ -51,7 +53,7 @@ export async function pushMemberReport(options: PushMemberOptions): Promise<void
     throw new SdrError(ERROR_CODES.SMTP_AUTH_FAILED, '无可用收件人');
   }
 
-  const sentAt = new Date();
+  const sentAt = options.clock.now();
   try {
     await sendMail(transport, { to, subject: mail.subject, text: mail.text });
     options.repo.insertPushLog({
@@ -68,11 +70,6 @@ export async function pushMemberReport(options: PushMemberOptions): Promise<void
       sentAt,
       result: code,
     });
-    const alertTo = resolveRecipients(
-      [],
-      { memberIds: [] },
-      { ...(options.notifyTo === undefined ? {} : { notifyTo: options.notifyTo }), smtpFrom: smtp.from },
-    );
     const notify =
       options.notifyTo !== undefined
         ? options.notifyTo
