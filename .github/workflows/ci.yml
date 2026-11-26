@@ -1,0 +1,56 @@
+# 本地四条门禁的远端等价：typecheck / lint / test / build
+# 分别跑 v1（SDD）与 v2（Superpowers），任一失败即红。
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  gate:
+    name: ${{ matrix.project }} gates
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        project: [v1, v2]
+    defaults:
+      run:
+        working-directory: ${{ matrix.project }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10
+
+      - name: Setup Node.js 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+          cache-dependency-path: ${{ matrix.project }}/pnpm-lock.yaml
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: typecheck
+        run: pnpm typecheck
+
+      - name: lint
+        run: pnpm lint
+
+      - name: test
+        run: pnpm test
+
+      - name: build
+        run: pnpm build
