@@ -3,6 +3,11 @@
 > T-023 交付物：与 `v1/src/` 实际模块一致，含 `EntryMember` 与 `Clock`。
 > `Clock` 为注入端口，`Repo` 聚合 member/audit/history/entries 四个同库子仓储。
 
+
+![类图（渲染图）](02-class.png)
+
+> 上图为 类图（渲染图），由下方 Mermaid 源码经 mermaid-cli 12.2 渲染（2026-11-26）。
+
 ```mermaid
 classDiagram
     direction LR

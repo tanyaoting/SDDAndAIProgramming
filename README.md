@@ -54,7 +54,9 @@
 | 规范 · 任务 | `specs/tasks.md` | v0.3（25 任务，关键路径 70 人时） |
 | 评审 · 设计缺陷单 | `specs/design-review.md` | 16 条（阻塞 3 / 高 3 / 中 9 / 低 1），已全部关闭 |
 | 交付 · 业务调研报告 | `docs/业务调研报告.docx` | 第 1 章完成，第 2–6 章待补 |
-| 交付 · 需求/系统分析/技术调研 | `docs/需求分析报告.docx`、`docs/系统分析报告.docx`、`docs/技术调研报告.docx` | 已归档 |
+| 交付 · 需求/系统分析/技术调研 | `docs/需求分析报告.docx`、`docs/系统分析报告.docx`、`docs/技术调研报告.docx` | 已归档；需求/系统分析报告已附 UML 渲染图 |
+| 交付 · AI 使用日志 | `docs/AI使用日志-第1-2周.md` | 第 1–2 周（附录 D 模板）；提示要点栏待本人核对补录 |
+| 阶段一 · UML 附件 | `v1/docs/uml/0*.png` + 同名 `.md` 源码 | 四图已渲染（mermaid-cli 12.2，2026-11-26），索引见 `specs/design.md` 附录 A.2 |
 | 过程 · Superpowers 拆解 | `docs/Superpowers技能拆解笔记.md` | systematic-debugging |
 | 阶段二 · 交接文档 | `v2/HANDOVER.md` | v1 结论/契约/表结构教训，7 章 |
 | 阶段二 · 工程 | `v2/` | 已初始化（工具链通过，业务代码待 TDD 长出） |

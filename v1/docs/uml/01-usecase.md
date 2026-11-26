@@ -3,6 +3,11 @@
 > T-023 交付物：用例视角。角色与用例对应 proposal §6 验收标准；
 > 模块落点见 [类图](./02-class.md)。
 
+
+![用例图（渲染图）](01-usecase.png)
+
+> 上图为 用例图（渲染图），由下方 Mermaid 源码经 mermaid-cli 12.2 渲染（2026-11-26）。
+
 ```mermaid
 flowchart LR
     Member([团队成员])
