@@ -1,0 +1,11 @@
+# 工作时段（Asia/Shanghai）。休息区间内的事件回退到前一工作时段。
+work_blocks:
+  - name: morning
+    start: "09:00"
+    end: "12:00"
+  - name: afternoon
+    start: "13:30"
+    end: "18:00"
+  - name: evening
+    start: "19:00"
+    end: "22:00"

@@ -1,0 +1,32 @@
+# 关键词 → EntryState。无命中时 classifyState 返回 doing / confidence 0。
+rules:
+  - pattern: "完成|搞定|closed|fix"
+    state: done
+    weight: 3
+  - pattern: "阻塞|blocked|卡住"
+    state: blocked
+    weight: 3
+  - pattern: "计划|todo|准备"
+    state: plan
+    weight: 2
+  - pattern: "进行|wip|draft"
+    state: doing
+    weight: 1
+  - pattern: "实现|改造|重构"
+    state: doing
+    weight: 1
+  - pattern: "修复|bug"
+    state: done
+    weight: 2
+  - pattern: "评审|review"
+    state: doing
+    weight: 1
+  - pattern: "联调|联测"
+    state: doing
+    weight: 1
+  - pattern: "上线|发布"
+    state: done
+    weight: 2
+  - pattern: "调研|设计"
+    state: plan
+    weight: 1
