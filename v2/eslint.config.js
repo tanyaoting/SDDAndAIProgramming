@@ -51,4 +51,42 @@ export default tseslint.config(
       ],
     },
   },
+  {
+    files: ['src/generator/**/*.ts'],
+    rules: {
+      'no-restricted-imports': [
+        'error',
+        {
+          paths: [
+            {
+              name: '../collectors/github.js',
+              message: '生成层不得依赖采集层',
+            },
+            {
+              name: '../collectors/feishu.js',
+              message: '生成层不得依赖采集层',
+            },
+            {
+              name: '../collectors/local.js',
+              message: '生成层不得依赖采集层',
+            },
+            {
+              name: '../collectors/manual.js',
+              message: '生成层不得依赖采集层',
+            },
+            {
+              name: '../collectors/normalize.js',
+              message: '生成层不得依赖采集层',
+            },
+          ],
+          patterns: [
+            {
+              group: ['**/collectors/**'],
+              message: '生成层不得 import 采集层',
+            },
+          ],
+        },
+      ],
+    },
+  },
 );
