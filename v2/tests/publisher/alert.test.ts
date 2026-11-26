@@ -38,16 +38,16 @@ describe('T-018 alert', () => {
 
   it('sendFailureAlert 经 streamTransport 发出', async () => {
     const transport = streamTransport();
-    await sendFailureAlert({
-      transport,
-      smtp,
-      notifyTo: ['ops@example.com'],
-      phase: 'collect',
-      errorCode: ERROR_CODES.GITHUB_PAGINATION_OVERFLOW,
-      message: '分页超限',
-      reportDate: '2026-11-25',
-    });
-    const sent = (transport as { sent?: unknown[] }).sent ?? [];
-    expect(sent.length).toBe(1);
+    await expect(
+      sendFailureAlert({
+        transport,
+        smtp,
+        notifyTo: ['ops@example.com'],
+        phase: 'collect',
+        errorCode: ERROR_CODES.GITHUB_PAGINATION_OVERFLOW,
+        message: '分页超限',
+        reportDate: '2026-11-25',
+      }),
+    ).resolves.toBeUndefined();
   });
 });

@@ -32,6 +32,7 @@ export interface MailPayload {
   readonly to: readonly string[];
   readonly subject: string;
   readonly text: string;
+  readonly from?: string;
 }
 
 export interface SmtpSettings {
@@ -48,6 +49,14 @@ export function createMailTransport(
   smtp: SmtpSettings,
   options: SMTPTransport.Options = {},
 ): MailTransport {
+  if (options.streamTransport === true) {
+    return nodemailer.createTransport({
+      streamTransport: true,
+      newline: 'unix',
+      buffer: true,
+      ...options,
+    });
+  }
   return nodemailer.createTransport({
     host: smtp.host,
     port: smtp.port,
@@ -92,6 +101,7 @@ export async function sendMail(
 
   try {
     const info = await transport.sendMail({
+      ...(payload.from === undefined ? {} : { from: payload.from }),
       to: payload.to.join(', '),
       subject: payload.subject,
       text: payload.text,
