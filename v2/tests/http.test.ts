@@ -52,14 +52,16 @@ describe('requestJson', () => {
   });
 
   it('500 恰好重试 3 次，退避 1s/2s/4s', async () => {
-    const pool = agent.get('https://api.example.com');
     let hits = 0;
-    pool.intercept({ path: '/flaky', method: 'GET' }).reply(() => {
-      hits += 1;
-      return { statusCode: 500, data: 'err' };
+    const retryClient = createHttpClient({
+      sleep,
+      fetchImpl: async () => {
+        hits += 1;
+        return new Response('err', { status: 500 });
+      },
     });
 
-    await expect(client.requestJson('https://api.example.com/flaky', {})).rejects.toBeInstanceOf(
+    await expect(retryClient.requestJson('https://api.example.com/flaky', {})).rejects.toBeInstanceOf(
       HttpResponseError,
     );
     expect(hits).toBe(4);
@@ -67,40 +69,37 @@ describe('requestJson', () => {
   });
 
   it('429 在重试后成功', async () => {
-    const pool = agent.get('https://api.example.com');
     let hits = 0;
-    pool.intercept({ path: '/rate', method: 'GET' }).reply(() => {
-      hits += 1;
-      if (hits < 3) return { statusCode: 429, data: 'slow down' };
-      return {
-        statusCode: 200,
-        data: JSON.stringify({ ok: true }),
-        responseOptions: { headers: { 'content-type': 'application/json' } },
-      };
+    const retryClient = createHttpClient({
+      sleep,
+      fetchImpl: async () => {
+        hits += 1;
+        if (hits < 3) return new Response('slow down', { status: 429 });
+        return Response.json({ ok: true });
+      },
     });
 
-    const body = await client.requestJson<{ ok: boolean }>('https://api.example.com/rate', {});
+    const body = await retryClient.requestJson<{ ok: boolean }>('https://api.example.com/rate', {});
     expect(body).toEqual({ ok: true });
     expect(hits).toBe(3);
     expect(sleepCalls).toEqual([1000, 2000]);
   });
 
   it('网络错误按可重试策略退避', async () => {
-    const pool = agent.get('https://api.example.com');
     let hits = 0;
-    pool.intercept({ path: '/net', method: 'GET' }).reply(() => {
-      hits += 1;
-      if (hits < 2) {
-        throw new Error('socket reset');
-      }
-      return {
-        statusCode: 200,
-        data: JSON.stringify({ recovered: true }),
-        responseOptions: { headers: { 'content-type': 'application/json' } },
-      };
+    const retryClient = createHttpClient({
+      sleep,
+      fetchImpl: async () => {
+        hits += 1;
+        if (hits < 2) throw new TypeError('fetch failed');
+        return Response.json({ recovered: true });
+      },
     });
 
-    const body = await client.requestJson<{ recovered: boolean }>('https://api.example.com/net', {});
+    const body = await retryClient.requestJson<{ recovered: boolean }>(
+      'https://api.example.com/net',
+      {},
+    );
     expect(body).toEqual({ recovered: true });
     expect(sleepCalls).toEqual([1000]);
   });
@@ -116,7 +115,7 @@ describe('requestJson', () => {
 
     const joined = logLines.join('\n');
     expect(joined).not.toContain('12345678901');
-    expect(joined).toMatch(/1{3}\*{3,}1{3}/);
+    expect(joined).toContain('token=123****901');
   });
 
   it('404 不重试', async () => {
