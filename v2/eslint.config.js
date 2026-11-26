@@ -34,4 +34,21 @@ export default tseslint.config(
       'no-restricted-syntax': ['error', noNewDateRule],
     },
   },
+  {
+    files: ['src/**/*.ts'],
+    ignores: ['src/store/**'],
+    rules: {
+      'no-restricted-imports': [
+        'error',
+        {
+          paths: [
+            {
+              name: 'better-sqlite3',
+              message: 'better-sqlite3 仅允许在 src/store/ 内使用（ADR-002）',
+            },
+          ],
+        },
+      ],
+    },
+  },
 );
