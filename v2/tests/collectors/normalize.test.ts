@@ -8,10 +8,15 @@ describe('buildDedupeKey', () => {
 
   it('日期部分取自 dayKey', () => {
     const at = new Date('2026-11-25T16:30:00.000Z');
+    const sameDay = new Date('2026-11-25T18:00:00.000Z');
+    const otherDay = new Date('2026-11-24T12:00:00.000Z');
     const keyA = buildDedupeKey('sha-1', at, 1, clock);
     const keyB = buildDedupeKey('sha-1', at, 1, clock);
+    const keySameDay = buildDedupeKey('sha-1', sameDay, 1, clock);
+    const keyOtherDay = buildDedupeKey('sha-1', otherDay, 1, clock);
     expect(keyA).toBe(keyB);
-    expect(keyA).toMatch(/2026-11-26/);
+    expect(keySameDay).toBe(keyA);
+    expect(keyOtherDay).not.toBe(keyA);
   });
 
   it('CS-19：跨越 UTC 零点但 dayKey 相同则 key 一致', () => {
@@ -27,13 +32,12 @@ describe('buildDedupeKey', () => {
 describe('dedupe', () => {
   const clock = new FixedClock(new Date('2026-11-25T12:00:00+08:00'));
 
-  const base = (overrides: Partial<Event> & Pick<Event, 'occurredAt'>): Event => ({
+  const base = (overrides: Partial<Event> & Pick<Event, 'occurredAt' | 'sourceId'>): Event => ({
     memberId: 1,
     source: 'github',
-    sourceId: 'x',
     kind: 'commit',
     title: 't',
-    dedupeKey: buildDedupeKey('x', overrides.occurredAt, 1, clock),
+    dedupeKey: buildDedupeKey(overrides.sourceId, overrides.occurredAt, 1, clock),
     isPrimary: false,
     runId: 'r',
     ...overrides,
@@ -44,8 +48,8 @@ describe('dedupe', () => {
     const t2 = new Date('2026-11-25T03:00:00.000Z');
     const key = buildDedupeKey('dup', t1, 1, clock);
     const events = dedupe([
-      base({ occurredAt: t1, dedupeKey: key, isPrimary: false, source: 'local' }),
-      base({ occurredAt: t2, dedupeKey: key, isPrimary: true, source: 'github' }),
+      base({ sourceId: 'dup', occurredAt: t1, dedupeKey: key, isPrimary: false, source: 'local' }),
+      base({ sourceId: 'dup', occurredAt: t2, dedupeKey: key, isPrimary: true, source: 'github' }),
     ]);
     expect(events).toHaveLength(1);
     expect(events[0]?.isPrimary).toBe(true);

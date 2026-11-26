@@ -29,7 +29,7 @@ export function maskToken(value: string): string {
 }
 
 function maskSensitiveText(line: string): string {
-  return line.replace(/[A-Za-z0-9_\-]{9,}/g, (token) => maskToken(token));
+  return line.replace(/[A-Za-z0-9_-]{9,}/g, (token) => maskToken(token));
 }
 
 export interface RequestJsonOptions {
@@ -90,10 +90,12 @@ export function createHttpClient(deps: HttpClientDeps = {}): HttpClient {
 
     for (let attempt = 0; attempt < attempts; attempt += 1) {
       try {
-        const response = await fetchImpl(url, {
-          ...init,
-          signal: options.timeoutMs === undefined ? undefined : AbortSignal.timeout(options.timeoutMs),
-        });
+        const response = await fetchImpl(
+          url,
+          options.timeoutMs === undefined
+            ? init
+            : { ...init, signal: AbortSignal.timeout(options.timeoutMs) },
+        );
 
         const text = await response.text();
         let parsed: unknown = text;

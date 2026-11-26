@@ -5,7 +5,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { MockAgent, setGlobalDispatcher } from 'undici';
 import { FixedClock, dayWindow, toZonedIsoString } from '../../src/clock.js';
 import { ERROR_CODES } from '../../src/errors.js';
-import { HttpResponseError, createHttpClient } from '../../src/http.js';
+import { createHttpClient } from '../../src/http.js';
 import { collectGithub } from '../../src/collectors/github.js';
 
 const fixtureDir = join(dirname(fileURLToPath(import.meta.url)), '../fixtures');
@@ -33,11 +33,7 @@ describe('collectGithub', () => {
   it('fixture 提交映射为 Event', async () => {
     const pool = agent.get('https://api.github.com');
     pool
-      .intercept({
-        path: '/repos/acme/sdr/commits',
-        method: 'GET',
-        query: { per_page: '100', page: '1' },
-      })
+      .intercept({ path: /\/repos\/acme\/sdr\/commits/, method: 'GET' })
       .reply(200, sampleCommits, { headers: { 'content-type': 'application/json' } });
 
     const http = createHttpClient();
@@ -104,6 +100,7 @@ describe('collectGithub', () => {
 
   it('超时映射 SDR-E103', async () => {
     const http = createHttpClient({
+      sleep: async () => undefined,
       fetchImpl: async () => {
         throw new DOMException('timeout', 'TimeoutError');
       },
@@ -124,9 +121,16 @@ describe('collectGithub', () => {
   });
 
   it('分页超限抛 SDR-E104', async () => {
+    const fullPage = Array.from({ length: 100 }, (_, index) => ({
+      sha: `sha-${String(index)}`,
+      commit: {
+        message: 'bulk',
+        author: { date: '2026-11-25T02:00:00Z' },
+      },
+    }));
     const http = createHttpClient({
       fetchImpl: vi.fn().mockResolvedValue(
-        new Response(JSON.stringify(sampleCommits), {
+        new Response(JSON.stringify(fullPage), {
           status: 200,
           headers: { 'content-type': 'application/json' },
         }),
