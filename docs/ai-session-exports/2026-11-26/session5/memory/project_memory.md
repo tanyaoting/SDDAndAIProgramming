@@ -1,0 +1,6 @@
+- 整个 Node 工程需放在 v1 子目录下，源码放在 v1/src 目录，避免污染仓库根目录
+- 测试记录需写入 tests 目录下的 .log 日志文件，直接在测试执行过程中记录，不单独提交到代码仓库
+- pnpm-workspace.yaml 中 allowBuilds.better-sqlite3 设为 false，依赖使用 npm 包自带的预编译二进制运行，仅在无对应预编译产物时才需要改为 true 开启现场编译
+- CLI 启动时需自动加载当前工作目录下的 .env 文件，合并到进程环境变量，已存在的进程环境变量优先级高于 .env 文件
+- 飞书任务采集器需兼容 v2 API 的两种负责人字段结构：优先读取旧的 assignee.open_id，无此字段时取 members 数组中 role 为 assignee 的 id；任务状态需通过 completed_at 是否大于 0 判断，而非依赖 status 字段
+- 飞书应用需添加网页应用能力并配置对应的重定向 URL 与 H5 可信域名，创建版本并发布后，重定向 URL 配置才会在授权服务端生效

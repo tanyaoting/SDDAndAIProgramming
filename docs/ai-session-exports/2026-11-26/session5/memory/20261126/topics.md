@@ -1,0 +1,8 @@
+[session_id: 6b06d62405c522bdb7995263 | topic_summary_time: 2026-11-26 14:14:57]完成 v1 版本全部功能开发，覆盖 M0 到 M5 所有需求，创建 tag v1-sdd；实现了邮件推送、交付逻辑、告警、调度器、完整 CLI 命令集，集成测试 28 个文件 151 个用例全部通过，性能指标满足规范要求；生成了用例图、类图、ER 图、泳道图等 Mermaid 格式 UML 文档，完整测试记录已写入对应文档；明确了成员表无邮箱、history 调用者身份、本地采集参数等规范未明确场景的处理规则。
+---
+配置了 vitest 测试日志自动记录机制，通过 setup 文件在每个测试用例执行前后将结果追加到 tests/logs 目录下按日期命名的 .log 文件，日志按天追加累积，且该目录已被 .gitignore 忽略不会提交到仓库。
+---
+确认了 pnpm-workspace.yaml 中 allowBuilds.better-sqlite3: false 的含义，该配置禁止 better-sqlite3 执行安装期构建脚本，当前版本依赖 npm 包自带的各平台预编译二进制即可正常运行，仅在无对应预编译产物的平台或 Node ABI 不匹配时才需要改为 true 开启现场编译。
+[session_id: 6b06d62405c522bdb7995263 | topic_summary_time: 2026-11-26 14:43:58]用户提供了飞书应用凭证（App ID: [REDACTED]，App Secret: [REDACTED] CLI 仅读取进程环境变量，导致执行 `node dist/cli.js collect --date 2026-11-26 --source feishu` 时抛出 SDR-E303 错误提示缺少全部 8 个必需环境变量。已修复该问题：新增 env-file.ts 实现轻量 .env 解析，在 CLI 启动时自动合并当前目录下的 .env 文件，进程已存在的环境变量优先级更高，修复后命令可正常执行，返回凭证有效但任务条数为 0，原因为飞书应用尚未开通任务数据权限且成员 feishu_open_id 未完成映射。
+[session_id: 6b06d62405c522bdb7995263 | topic_summary_time: 2026-11-26 15:19:37]解决飞书授权 20029 错误：原应用因未配置网页应用能力导致回调地址不被授权服务端识别，反复添加回调地址、发布版本均无效，最终创建新的企业自建应用 SDR-Daily-Test，添加网页应用能力、配置重定向 URL 与 H5 可信域名、发布版本并开通对应权限后完成授权，成功获取用户 token。修复飞书任务采集器兼容问题：原采集器仅读取旧版 API 的 assignee.open_id 字段，飞书 v2 API 任务返回的负责人信息存储在 members 数组中，同时任务状态通过 completed_at 字段而非 status 字段判断，修改后成功采集到用户新建的测试任务并入库，重复采集会通过 dedupe_key 自动去重，所有类型检查、lint、测试与构建均通过。用户反馈看到零条记录，确认是重复采集被去重的预期行为，已采集的任务已正确写入事件库，日报需单独执行 generate 命令生成。
+[session_id: 6b06d62405c522bdb7995263 | topic_summary_time: 2026-11-26 15:20:17]用户提交了 commit 7a9c7ae，内容为实现飞书用户身份 OAuth 授权与成员绑定功能，涉及 feishu-auth 模块、member 命令以及 task v2 members 解析逻辑。本次提交共包含 16 个文件，其中包含 4 个新模块、2 个新测试文件以及对现有采集、CLI、存储相关代码的改动，.env 文件与 data/feishu-tokens.json 未纳入版本控制。当前工作区状态为干净，无未提交的改动。

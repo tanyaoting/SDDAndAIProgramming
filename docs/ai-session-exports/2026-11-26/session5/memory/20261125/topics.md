@@ -1,0 +1,2 @@
+[session_id: 6b06d62405c522bdb7995263 | topic_summary_time: 2026-11-25 20:49:36]用户确认按之前的 M0 工程基线方案开始实现，随后要求将整个 Node 工程放在 v1 子目录下，代码放在 v1/src 文件夹，不要污染根目录。已完成 T-001 工程骨架与工具链搭建、T-002 配置加载与错误码体系实现，所有代码已按要求移入 v1 目录，根目录仅保留 specs、docs、backup、README.md 等非工程文件，三条门禁命令（typecheck、lint、test）全部通过，相关代码已提交 git 仓库。
+[session_id: 6b06d62405c522bdb7995263 | topic_summary_time: 2026-11-25 20:54:36]用户询问项目中「sdr」的含义，得到解释：sdr 是本项目的代号，来自 Smart Daily Report Generator（智能日报生成器）的首字母缩写，定义在 specs/proposal.md 文档中，同时也是项目的 CLI 命令名和 npm 包名，相关命令包括 sdr collect、sdr generate、sdr push 等，相关定义也可在 specs/design.md 中查阅。
