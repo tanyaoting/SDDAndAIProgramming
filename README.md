@@ -20,13 +20,16 @@ CI：[`.github/workflows/ci.yml`](.github/workflows/ci.yml) 在 `main` 的 push/
 ├── docs/                           # 课程交付物（Word + 截图 + 角色评审）
 │   ├── 业务调研 / 需求 / 系统分析 / 技术调研 / 系统设计 报告.docx
 │   ├── screenshots/                # 脱敏实证截图
-│   └── AI使用日志-第1-2周.md
+│   ├── AI使用日志-第1-2周.md / -第3周.md
+│   ├── 角色分工与轮换表.md          # 四×五轮换矩阵（姓名待填）
+│   └── 课程要求对照与缺口清单.md    # 逐条对照 + 待收口缺口
 ├── backup/                         # 过程材料（访谈纪要等，非交付清单）
 ├── v1/                             # 阶段一工程根（SDD）
 └── v2/                             # 阶段二工程根（Superpowers，从零重写）
     ├── HANDOVER.md                 # 结论/契约/踩坑（非代码）
     ├── docs/plans/                 # writing-plans 产物
     ├── docs/reviews/               # code-review 互评
+    ├── docs/uml/                   # 模块类图 / 主链路时序 / ER（Mermaid 源）
     ├── docs/第3周-*.md             # 站会 / tasks 勾销 / 门禁等过程证据
     └── src/ tests/                 # TDD 长出的实现与测试
 ```
@@ -61,14 +64,17 @@ pnpm build && node dist/cli.js   # 用法：collect|generate|edit|push|history|s
 | 规范 · 设计 | `specs/design.md` | v0.4（7 份 ADR） |
 | 规范 · 任务 | `specs/tasks.md` | v0.3.1（阶段一；v2 计划在 `v2/docs/plans/`） |
 | 评审 · 设计缺陷单 | `specs/design-review.md` | 16/16 关闭 |
-| 角色 · 工程可行性 / 可测性 | `docs/工程可行性评审意见.md`、`docs/验收标准可测性评审意见.md` | 已归档（署名栏待组内填写） |
+| 角色 · 工程可行性 / 可测性 | `docs/工程可行性评审意见.md`、`docs/验收标准可测性评审意见.md` | 已归档（开发=谭垚廷、测试=姜思远；复核人待填） |
+| 角色 · 分工与轮换 | `docs/角色分工与轮换表.md` | 四×五轮换矩阵已建，第 1/4 周与成员名单待填 |
 | 交付 · 调研与分析报告 | `docs/*调研*.docx`、`docs/需求分析报告.docx`、`docs/系统分析报告.docx` | 已归档 |
 | 交付 · 系统设计报告 | `docs/系统设计报告.docx` | 阶段二六章齐全 |
 | 交付 · 截图 | `docs/screenshots/` | 13 张已脱敏 |
-| 交付 · AI 日志 | `docs/AI使用日志-第1-2周.md` | 第 1–2 周；第 3 周待补 |
+| 交付 · AI 日志 | `docs/AI使用日志-第1-2周.md`、`docs/AI使用日志-第3周.md` | 第 1–2 周 20 行；第 3 周 14 行（`提示要点` 待本人核对）；第 4 周待补 |
 | 阶段一 · UML / 测试 | `v1/docs/uml/`、`v1/docs/测试记录.md` | 六图 + 实测 |
+| 阶段二 · UML | `v2/docs/uml/` | 模块类图 / 主链路时序 / ER（Mermaid 源） |
 | 阶段二 · 交接 / 计划 | `v2/HANDOVER.md`、`v2/docs/plans/` | design-delta + implementation |
 | 阶段二 · 第 3 周过程证据 | `v2/docs/第3周-交付物索引.md` | 站会、勾销、互评、覆盖率、门禁等 |
 | 阶段二 · 测试记录 | `v2/docs/测试记录.md`、`v2/docs/覆盖率报告.md` | 126 用例；覆盖率摘要 |
 | 过程 · 技能拆解 | `docs/Superpowers技能拆解笔记.md` | systematic-debugging |
-| CI | `.github/workflows/ci.yml` | v1/v2 四门禁 |
+| 过程 · 课程要求对照 | `docs/课程要求对照与缺口清单.md` | 逐条对照 + 缺口按 P0→P2 收口 |
+| CI | `.github/workflows/ci.yml` | v1/v2 四门禁（仓库托管于 Gitee，Actions 不自动触发，见缺口清单 P1-8） |
