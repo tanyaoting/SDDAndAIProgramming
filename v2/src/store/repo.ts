@@ -1,7 +1,7 @@
 import type Database from 'better-sqlite3';
-import { toZonedIsoString } from '../clock.js';
+import { parseInstant, toZonedIsoString } from '../clock.js';
 import { ERROR_CODES, SdrError } from '../errors.js';
-import type { Clock, EntryState, Event, Member, ReportStatus, SummaryRow } from '../types.js';
+import type { Clock, EntryState, Event, Member, Report, ReportStatus, SummaryRow } from '../types.js';
 import { createAuditWrites, createHistoryAccess, selectMemberById } from './repo-extra.js';
 import {
   emptyByState,
@@ -27,13 +27,38 @@ export {
   type HistoryReport,
   type IngestionRunInput,
   type PushLogInput,
+  type SaveReportBundleEntry,
   type SaveReportBundleInput,
 } from './repo-types.js';
+
+type ReportRow = {
+  id: number;
+  member_id: number;
+  report_date: string;
+  status: ReportStatus;
+  body: string | null;
+  generated_at: string;
+  pushed_at: string | null;
+};
+
+function mapReport(row: ReportRow): Report {
+  return {
+    id: row.id,
+    memberId: row.member_id,
+    reportDate: row.report_date,
+    status: row.status,
+    ...(row.body === null ? {} : { body: row.body }),
+    generatedAt: parseInstant(row.generated_at),
+    ...(row.pushed_at === null ? {} : { pushedAt: parseInstant(row.pushed_at) }),
+  };
+}
 
 export interface Repo {
   insertMember(input: Omit<Member, 'id'>): Member;
   getMember(id: number): Member | undefined;
   upsertEvent(event: Event): Event;
+  findReport(memberId: number, reportDate: string): Report | undefined;
+  deleteReport(reportId: number): void;
   saveReportBundle(bundle: SaveReportBundleInput): { reportId: number };
   acceptAttribution(reportId: number, all: boolean): number;
   findSummaryRows(reportDate: string): SummaryRow[];
@@ -148,6 +173,29 @@ export function createRepo(db: Database.Database, clock: Clock): Repo {
     INSERT INTO source_link (entry_id, link_type, target) VALUES (@entryId, @linkType, @target)
   `);
 
+  const selectReportByMemberDate = db.prepare(
+    `SELECT * FROM report WHERE member_id = ? AND report_date = ?`,
+  );
+
+  function findReport(memberId: number, reportDate: string): Report | undefined {
+    const row = selectReportByMemberDate.get(memberId, reportDate) as ReportRow | undefined;
+    return row === undefined ? undefined : mapReport(row);
+  }
+
+  function deleteReport(reportId: number): void {
+    db.transaction(() => {
+      const entryIds = (
+        db.prepare(`SELECT id FROM entry WHERE report_id = ?`).all(reportId) as { id: number }[]
+      ).map((r) => r.id);
+      for (const entryId of entryIds) {
+        db.prepare(`DELETE FROM entry_member WHERE entry_id = ?`).run(entryId);
+        db.prepare(`DELETE FROM source_link WHERE entry_id = ?`).run(entryId);
+      }
+      db.prepare(`DELETE FROM entry WHERE report_id = ?`).run(reportId);
+      db.prepare(`DELETE FROM report WHERE id = ?`).run(reportId);
+    })();
+  }
+
   function saveReportBundle(bundle: SaveReportBundleInput): { reportId: number } {
     const write = db.transaction(() => {
       const reportResult = insertReport.run({
@@ -240,6 +288,8 @@ export function createRepo(db: Database.Database, clock: Clock): Repo {
     insertMember,
     getMember,
     upsertEvent,
+    findReport,
+    deleteReport,
     saveReportBundle,
     acceptAttribution,
     findSummaryRows,
